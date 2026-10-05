@@ -27,6 +27,9 @@ Dự án tập trung xây dựng **Hệ thống Cảnh báo Sớm (Early Warning
 SIS / LMS / Survey (CSV/API)
            │
            ▼
+Raw Data Lake (MinIO Object Storage)
+           │
+           ▼
 Python ETL Pipeline (Pandas / Data Cleaning)
            │
            ▼

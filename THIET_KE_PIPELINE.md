@@ -1,98 +1,121 @@
 # THIẾT KẾ DATA PIPELINE: DỰ ĐOÁN NGUY CƠ BỎ HỌC CỦA SINH VIÊN
 **Môn học:** Tích hợp và Phân tích Dữ liệu Lớn  
-**Kiến trúc tổng thể:** `Raw Data → Ingestion → ETL/ELT → Storage → Machine Learning → Visualization`
+**Kiến trúc tổng thể:** `Raw Data → Ingestion → ETL → Storage → Machine Learning → Visualization`
 
 ---
 
 ### 1. Nguồn dữ liệu (Data Sources)
-* **Dữ liệu đến từ đâu:** Đến từ 3 hệ thống nội bộ của trường đại học:
-  1. *Hệ thống thông tin đào tạo (SIS - Student Information System):* Điểm số (`Sem_GPA`), số tín chỉ (`Course_Load`), môn trượt (`Failed_Courses`), học phí (`Tuition_Base`).
-  2. *Hệ thống học tập trực tuyến (LMS - Moodle/Canvas):* Lịch sử đăng nhập (`LMS_Logins`), điểm danh chuyên cần (`Attendance`).
-  3. *Khảo sát sinh viên & Phòng Công tác sinh viên:* Áp lực tài chính (`Financial_Stress`), giờ làm thêm (`Work_Hours`), chi phí đột xuất (`Emergency_Expense`), gặp cố vấn (`Advising_Visits`).
-* **Loại dữ liệu:** Dữ liệu hỗn hợp: Dữ liệu có cấu trúc (bảng điểm, học phí từ CSDL SQL) và bán cấu trúc (logs truy cập LMS, file kết quả khảo sát CSV/JSON).
-* **Dung lượng mỗi ngày:** Dữ liệu định danh và điểm số chỉ cập nhật theo đợt (cuối kỳ/giữa kỳ). Dữ liệu hành vi LMS phát sinh khoảng **1.000 – 5.000 sự kiện/ngày** (rất nhẹ, dưới 10 MB/ngày).
+* **Dữ liệu đến từ đâu:** Bộ dữ liệu `academic_survival_longitudinal.csv` (**79.239 bản ghi, 22 cột, 20.000 sinh viên**, mỗi dòng là một cặp `Student_ID – Semester`). Trong thực tế, các cột này được tổng hợp từ 3 hệ thống nội bộ của trường:
+  1. *Hệ thống thông tin đào tạo (SIS - Student Information System):* Điểm số (`Sem_GPA`), số tín chỉ (`Course_Load`), môn trượt (`Failed_Courses`), học phí (`Tuition_Base`), học bổng (`Scholarship`).
+  2. *Hệ thống học tập trực tuyến (LMS - Moodle/Canvas):* Số lần đăng nhập (`LMS_Logins`), điểm danh chuyên cần (`Attendance`).
+  3. *Khảo sát sinh viên & Phòng Công tác sinh viên:* Thu nhập gia đình (`Family_Income`), áp lực tài chính (`Financial_Stress`), giờ làm thêm (`Work_Hours`), chi phí đột xuất (`Emergency_Expense`), gặp cố vấn (`Advising_Visits`).
+* **Loại dữ liệu:** Dữ liệu có cấu trúc dạng bảng (CSV, CSDL SQL), đã được tổng hợp theo học kỳ (longitudinal). Ở hệ thống thực, log LMS là dữ liệu bán cấu trúc và được cộng dồn thành `LMS_Logins` theo kỳ.
+* **Dung lượng mỗi ngày:** Toàn bộ tập dữ liệu chỉ ~**7,4 MB**. Dữ liệu điểm số cập nhật theo đợt (giữa kỳ/cuối kỳ). Dữ liệu hành vi LMS phát sinh khoảng **1.000 – 5.000 sự kiện/ngày** (dưới 10 MB/ngày).
 
 ---
 
 ### 2. Batch hay Streaming
 * **Lựa chọn:** **Batch Processing (Xử lý theo lô)**.
 * **Vì sao:** 
-  * Bài toán đặt ra là dự đoán nguy cơ bỏ học ở **học kỳ tiếp theo** (`Target_Dropout_Next_Sem`).
-  * Quyết định bỏ học hay can thiệp học vụ diễn ra theo chu kỳ tuần/tháng hoặc trước thềm học kỳ mới, không đòi hỏi phản hồi tức thời theo thời gian thực (mili-giây) như phát hiện gian lận thẻ tín dụng hay sensor IoT.
-  * Xử lý Batch định kỳ (ví dụ: chạy hàng tuần hoặc sau mỗi đợt thi) giúp tiết kiệm tài nguyên tính toán và chi phí vận hành.
+  * Bài toán là dự đoán nguy cơ bỏ học ở **học kỳ tiếp theo** (`Target_Dropout_Next_Sem`).
+  * Quyết định can thiệp học vụ diễn ra theo chu kỳ tuần/tháng hoặc trước học kỳ mới, không cần phản hồi tức thời (mili-giây) như phát hiện gian lận thẻ tín dụng hay sensor IoT.
+  * Xử lý Batch định kỳ giúp tiết kiệm tài nguyên tính toán và chi phí vận hành.
+* **Lập lịch:** Dùng cron / Windows Task Scheduler (hoặc Apache Airflow khi mở rộng) để chạy pipeline **hàng tuần** và **sau mỗi đợt thi**.
 
 ---
 
 ### 3. Dữ liệu bẩn và Cách xử lý (Data Quality Issues)
+*(Số liệu kiểm tra trực tiếp trên `academic_survival_longitudinal.csv`)*
+
 1. **Giá trị khuyết thiếu (Missing Values):** 
-   * *Thực tế:* Cột `Family_Income` bị bỏ trống ở một số sinh viên do không khai báo.
-   * *Cách xử lý:* Điền khuyết (Imputation) bằng giá trị trung vị (Median) theo nhóm quy mô hộ gia đình (`Household_Size`) hoặc sử dụng thuật toán KNN Imputer.
+   * *Thực tế:* `Family_Income` thiếu **3.604 dòng (~4,5%)** do sinh viên không khai báo; `LMS_Logins` thiếu **867 dòng (~1,1%)**.
+   * *Cách xử lý:* `Family_Income` điền bằng trung vị (Median) theo nhóm `Household_Size` và thêm cột cờ `Income_Missing`. `LMS_Logins` điền bằng giá trị của chính sinh viên đó ở kỳ trước (forward-fill theo `Student_ID`), nếu không có thì dùng trung vị.
 2. **Giá trị bất thường / Ngoại lai (Outliers):**
-   * *Thực tế:* Số giờ làm thêm (`Work_Hours`) ghi nhận > 80 giờ/tuần hoặc điểm chuyên cần (`Attendance`) ngoài khoảng [0, 100].
-   * *Cách xử lý:* Dùng phương pháp IQR để chặn ngưỡng (Winsorization/Clipping) đưa về dải giá trị thực tế hợp lý.
-3. **Trùng lặp bản ghi & Sai lệch định dạng (Duplicates & Categorical Inconsistency):**
-   * *Thực tế:* Trùng lặp cặp khóa (`Student_ID`, `Semester`) do nạp lại file; chuỗi phân loại như `Housing_Status` viết hoa/thường lộn xộn ("On-Campus", "on-campus").
-   * *Cách xử lý:* Chuẩn hóa text (`lower().strip()`) và áp dụng `drop_duplicates(subset=['Student_ID', 'Semester'])`.
+   * *Thực tế:* `Attendance` nằm ngoài khoảng hợp lệ [0, 100] (min = **-2**, max = **105**); `Family_Income` lệch phải mạnh (từ 3.000 đến **488.000**).
+   * *Cách xử lý:* Chặn `Attendance` về [0, 100] (Clipping). `Family_Income` dùng biến đổi log (`log1p`) hoặc chặn theo IQR (Winsorization).
+3. **Sai lệch định dạng phân loại (Categorical Inconsistency):**
+   * *Thực tế:* `Gender` có 8 cách ghi cho cùng ý nghĩa: `Female / female / F`, `Male / male / M`, `Other`, `Prefer not to say`.
+   * *Cách xử lý:* Chuẩn hóa `lower().strip()` rồi map về 3 nhóm: `Female`, `Male`, `Other/Unknown`.
+4. **Trùng lặp bản ghi (kiểm tra phòng ngừa):**
+   * *Thực tế:* Hiện **không có** bản ghi trùng (`Student_ID`, `Semester`), nhưng có thể phát sinh khi nạp lại file.
+   * *Cách xử lý:* Luôn chạy `drop_duplicates(subset=['Student_ID', 'Semester'], keep='last')` ở đầu pipeline.
+5. **Rò rỉ dữ liệu (Data Leakage):**
+   * *Thực tế:* Cột `End_of_Semester_Status` (`Dropped_Out`, `Graduated`, `Enrolled`) và `Censored` chứa thông tin kết quả.
+   * *Cách xử lý:* Loại 2 cột này khỏi tập đặc trưng khi huấn luyện mô hình.
 
 ---
 
 ### 4. ETL hay ELT
 * **Lựa chọn:** **ETL (Extract - Transform - Load)**.
 * **Giải thích ngắn gọn:** 
-  * Dung lượng dữ liệu ở quy mô vừa phải (~79.239 bản ghi, ~7.5 MB).
-  * Cần làm sạch, khử nhiễu và trích xuất đặc trưng chuỗi thời gian phức tạp (Delta GPA, tích lũy nợ môn) *trước khi* đưa vào kho dữ liệu để các nhà phân tích và mô hình Machine Learning có thể sử dụng ngay mà không cần xử lý lại trên kho lưu trữ.
+  * Dữ liệu có dung lượng vừa phải (~79.239 bản ghi, ~7,4 MB), biến đổi bằng Pandas trong bộ nhớ chỉ mất vài giây.
+  * Cần làm sạch và tạo đặc trưng theo thời gian (Delta GPA, tích lũy nợ môn) *trước khi* nạp vào kho, để nhà phân tích và mô hình ML dùng được ngay.
+  * ELT chỉ có lợi khi có Data Warehouse trên cloud với sức tính toán lớn (BigQuery, Snowflake), điều không cần thiết với quy mô này.
 
 ---
 
 ### 5. Quy trình Biến đổi dữ liệu (Transformation Steps)
 Chuỗi biến đổi từ dữ liệu thô sang dữ liệu sạch sẵn sàng cho mô hình:
 ```text
-Raw Ingestion → Remove Duplicates → Handle Missing Values → Standardize & Encode Categoricals 
-→ Feature Engineering (Delta GPA, Delta Attendance, Cumulative Failed Courses) 
-→ Feature Scaling (StandardScaler/RobustScaler) → Train/Test Split (GroupKFold by Student_ID)
+Raw Ingestion → Join data (SIS + LMS + Survey theo Student_ID, Semester) → Remove Duplicates
+→ Handle Missing Values → Fix Outliers → Standardize & Encode Categoricals
+→ Feature Engineering (Delta GPA, Delta Attendance, Cumulative Failed Courses)
+→ Drop Leakage Columns → Train/Test Split (GroupKFold by Student_ID)
+→ Feature Scaling (fit trên tập Train, áp dụng cho Test)
 ```
+> Scaling được thực hiện **sau** khi chia Train/Test để tránh rò rỉ thông tin từ tập Test. Chia theo `Student_ID` để cùng một sinh viên không xuất hiện ở cả hai tập.
 
 ---
 
 ### 6. Đánh giá nhu cầu Apache Spark / Flink
 * **Đánh giá:** **Python / Pandas / SQL là HOÀN TOÀN ĐỦ**, **KHÔNG CẦN** Apache Spark hay Apache Flink.
 * **Vì sao:** 
-  * Tập dữ liệu gồm 79.239 dòng, kích thước file khoảng **7.4 MB**. Khi nạp toàn bộ vào bộ nhớ RAM qua thư viện Pandas chỉ tốn chưa tới **150 MB RAM**.
-  * Máy tính cá nhân hiện nay (8GB – 16GB RAM) có thể xử lý, tính toán đặc trưng và huấn luyện mô hình trong vòng vài chục giây.
-  * Việc dựng cụm phân tán Apache Spark/Flink cho tập dữ liệu này sẽ gây lãng phí tài nguyên, tốn chi phí thiết lập cụm và phát sinh độ trễ mạng (network overhead) không cần thiết (Over-engineering).
+  * Tập dữ liệu gồm 79.239 dòng, kích thước file khoảng **7,4 MB**. Khi nạp toàn bộ vào RAM qua Pandas chỉ tốn chưa tới **150 MB RAM**.
+  * Máy tính cá nhân hiện nay (8GB – 16GB RAM) xử lý, tạo đặc trưng và huấn luyện mô hình trong vài chục giây.
+  * Dựng cụm phân tán Spark/Flink cho tập dữ liệu này gây lãng phí tài nguyên, tốn công thiết lập và phát sinh độ trễ mạng không cần thiết (Over-engineering).
+* **Khi nào mới cần:** Khi dữ liệu vượt quá RAM một máy (hàng chục GB, ví dụ log LMS thô của nhiều năm) thì dùng **Spark**; khi cần cảnh báo theo thời gian thực từ luồng sự kiện LMS thì dùng **Flink**.
 
 ---
 
 ### 7. Lưu trữ dữ liệu (Storage Architecture)
-* **Dữ liệu thô (Raw Data Lake):** Lưu dưới dạng tệp gốc CSV/Parquet tại **Object Storage** (MinIO trên Local hoặc AWS S3) để lưu vết lịch sử (Audit trail).
-* **Dữ liệu có cấu trúc & Hồ sơ sinh viên:** Lưu tại **Cơ sở dữ liệu quan hệ (PostgreSQL)** để quản lý giao dịch và khóa ngoại.
-* **Dữ liệu nhật ký học kỳ (Analytical/Longitudinal Data):** Lưu tại **Document Database (MongoDB)** hoặc các bảng chuẩn hóa trong PostgreSQL để phục vụ trích xuất đặc trưng cho ML.
+Kế thừa kiến trúc **Polyglot Persistence (PostgreSQL + MongoDB)** đã thiết kế ở bài giữa kỳ (`BAO_CAO_CSDL_GIUA_KY.md`), bổ sung thêm tầng Object Storage cho dữ liệu thô:
+
+| Tầng | Công nghệ | Lưu gì | Vì sao |
+|---|---|---|---|
+| **Raw Data Lake** | **Object Storage** (MinIO local, tương thích AWS S3) | Tệp gốc CSV/Parquet của mỗi đợt nạp | Lưu vết lịch sử (audit trail), cho phép chạy lại pipeline từ đầu |
+| **Dữ liệu tĩnh & kết quả** | **PostgreSQL** (Relational DB) | `students`, `financial_profiles` (như bài giữa kỳ) + bảng mới `predictions` (Risk Score mỗi lần chạy batch) | Dữ liệu cấu trúc cố định, cần ACID, khóa chính/khóa ngoại; Power BI kết nối trực tiếp |
+| **Dữ liệu theo học kỳ** | **MongoDB** (Document DB) | Collection `academic_semesters`: mỗi document là một kỳ của một sinh viên, gồm các object lồng nhau `academic_performance`, `engagement`, `socio_economic`, `outcome` | Schema linh hoạt khi thêm chỉ số hành vi mới (ví dụ log LMS chi tiết, kết quả khảo sát JSON) mà không phải sửa bảng |
+
+* **Vì sao không dùng một CSDL duy nhất:** Ở quy mô hiện tại (~7,4 MB) PostgreSQL một mình vẫn chạy được. Nhóm vẫn tách MongoDB vì dữ liệu học kỳ đến từ LMS và khảo sát, là những nguồn **thường xuyên thêm trường mới**. Document DB giúp nạp các trường này mà không cần migrate schema. Chi phí vận hành thêm thấp vì cả hai chạy chung trong `docker-compose`.
+* **Cách ghép dữ liệu cho ML:** ETL đọc `students` + `financial_profiles` từ PostgreSQL và `academic_semesters` từ MongoDB, rồi join theo `student_id` bằng Pandas để tạo bảng đặc trưng.
 
 ---
 
 ### 8. Hạ tầng triển khai: Cloud, Local hay Hybrid
 * **Lựa chọn:** **Local (đóng gói bằng Docker Containers)**, sẵn sàng mở rộng sang **Hybrid**.
 * **Giải thích:**
-  * *Chi phí:* Chi phí 0 đồng cho bài tập lớn đại học; tận dụng phần cứng máy trạm có sẵn.
+  * *Chi phí:* 0 đồng cho bài tập lớn; tận dụng phần cứng có sẵn.
   * *Bảo mật dữ liệu:* Dữ liệu sinh viên, học phí và điểm số là dữ liệu nhạy cảm, chạy On-premise/Local giúp kiểm soát hoàn toàn quyền truy cập.
-  * *Khả năng mở rộng:* Toàn bộ các dịch vụ (PostgreSQL, MongoDB, MLflow, Dashboard) được triển khai qua `docker-compose.yml`, giúp dễ dàng dịch chuyển lên Cloud (AWS/GCP) khi nhà trường muốn áp dụng thực tế.
+  * *Khả năng mở rộng:* Toàn bộ dịch vụ (MinIO, PostgreSQL, MongoDB, MLflow, Streamlit) được triển khai qua `docker-compose.yml`, dễ dàng chuyển lên Cloud (AWS/GCP) khi nhà trường muốn áp dụng thực tế.
 
 ---
 
 ### 9. Chiến lược Sao lưu (Backup Strategy)
 * **Dữ liệu cần backup:** 
-  1. Cơ sở dữ liệu PostgreSQL (hồ sơ sinh viên, thông tin tài chính).
-  2. Dữ liệu MongoDB (nhật ký biến động học kỳ).
-  3. Artifacts và trọng số mô hình tốt nhất từ MLflow.
-* **Tần suất backup:** Backup định kỳ **hàng tuần (Weekly)** hoặc ngay sau mỗi đợt nạp dữ liệu cuối học kỳ.
-* **Nơi lưu bản sao lưu:** Lưu bản dump nén (`pg_dump`, `mongodump`) trên một ổ cứng lưu trữ độc lập hoặc đẩy tự động lên Google Drive/AWS S3 Glacier.
+  1. **Dữ liệu thô** trong MinIO (nguồn gốc duy nhất để chạy lại toàn bộ pipeline).
+  2. Cơ sở dữ liệu **PostgreSQL** (hồ sơ sinh viên, hồ sơ tài chính, lịch sử dự đoán).
+  3. Cơ sở dữ liệu **MongoDB** (collection `academic_semesters`).
+  4. **MLflow** artifacts, trọng số mô hình và metadata của Model Registry.
+  * *Không cần backup* dữ liệu trung gian/đặc trưng vì có thể tạo lại từ dữ liệu thô.
+* **Tần suất backup:** **Hàng tuần (Weekly)** và ngay sau mỗi đợt nạp dữ liệu cuối học kỳ. Giữ 4 bản tuần gần nhất + 1 bản cuối mỗi học kỳ.
+* **Nơi lưu bản sao lưu:** Theo **quy tắc 3-2-1**: bản dump nén (`pg_dump`, `mongodump`, đồng bộ bucket MinIO) lưu trên máy chính + một ổ cứng độc lập + một bản ngoài site (Google Drive/AWS S3 Glacier).
 
 ---
 
 ### 10. Machine Learning & Quản lý phiên bản (Model Management)
-* **Mục đích của Model:** Dự đoán xác suất nhị phân sinh viên có nguy cơ bỏ học ở kỳ tiếp theo (`Target_Dropout_Next_Sem = 1`) và tính điểm rủi ro (Risk Score: Thấp, Trung bình, Cao).
-* **Nơi chạy:** Chạy dạng Batch Inference Script viết bằng Python (Scikit-Learn, XGBoost) kích hoạt định kỳ.
-* **Công cụ quản lý phiên bản:** Sử dụng **MLflow** để:
+* **Mục đích của Model:** Dự đoán xác suất sinh viên bỏ học ở kỳ tiếp theo (`Target_Dropout_Next_Sem = 1`, chiếm ~**8,7%** dữ liệu, mất cân bằng lớp) và gán Risk Score: **Thấp** (< 0,3), **Trung bình** (0,3 – 0,6), **Cao** (≥ 0,6).
+* **Nơi chạy:** Batch Inference Script bằng Python (Scikit-Learn, XGBoost) chạy định kỳ trên máy local/container; kết quả ghi vào bảng `predictions` trong PostgreSQL.
+* **Công cụ quản lý phiên bản:** **MLflow** (chạy trong container Docker, backend store là PostgreSQL, artifact store là MinIO) để:
   * Theo dõi tham số (Hyperparameters), độ đo (Recall, F1-Score, PR-AUC).
   * Đăng ký và quản lý phiên bản mô hình (Model Registry: Staging, Production).
 
@@ -100,21 +123,23 @@ Raw Ingestion → Remove Duplicates → Handle Missing Values → Standardize & 
 
 ### 11. Trực quan hóa dữ liệu (Visualization & Dashboard)
 * **Các thông tin hiển thị trên Dashboard:**
-  * Tỷ lệ sinh viên có nguy cơ bỏ học tổng thể và phân bổ theo khoa/ngành.
-  * Danh sách cảnh báo đỏ: Top các sinh viên có nguy cơ cao nhất kèm điểm rủi ro.
-  * Biểu đồ xu hướng: Tương quan giữa sụt giảm GPA, số giờ làm thêm với nguy cơ bỏ học.
-  * Biểu đồ SHAP Waterfall: Giải thích lý do cụ thể vì sao một sinh viên bị cảnh báo (ví dụ: do nợ 3 môn hay do áp lực tài chính tăng vọt).
-* **Công cụ lựa chọn:** **Power BI** (phù hợp cho cán bộ phòng đào tạo/quản lý) kết hợp **Streamlit** (giao diện web demo nhanh cho môn học).
+  * Tỷ lệ sinh viên có nguy cơ bỏ học tổng thể và phân bổ theo học kỳ, nơi ở (`Housing_Status`), học bổng (`Scholarship`), sinh viên thế hệ đầu (`First_Generation`).
+  * Danh sách cảnh báo đỏ: Top sinh viên có nguy cơ cao nhất kèm Risk Score.
+  * Biểu đồ xu hướng: Tương quan giữa sụt giảm GPA, số giờ làm thêm, áp lực tài chính với nguy cơ bỏ học.
+  * Biểu đồ SHAP Waterfall: Giải thích lý do cụ thể vì sao một sinh viên bị cảnh báo (ví dụ: nợ 3 môn hay áp lực tài chính tăng vọt).
+* **Công cụ lựa chọn:**
+  * **Power BI** (kết nối PostgreSQL): báo cáo tổng quan cho cán bộ phòng đào tạo/quản lý.
+  * **Streamlit**: giao diện web tra cứu từng sinh viên và hiển thị biểu đồ SHAP (Power BI không hỗ trợ SHAP trực tiếp).
 
 ---
 
 ### 12. Giám sát hệ thống (System & Model Monitoring)
 Lựa chọn **5 metrics cốt lõi** để kiểm tra tính ổn định:
-1. `Pipeline Execution Latency:` Thời gian hoàn thành toàn bộ chu trình ETL (mục tiêu: < 2 phút).
-2. `Data Ingestion Error Rate:` Tỷ lệ bản ghi bị lỗi schema hoặc không thể nạp (mục tiêu: < 0.1%).
-3. `Missing Data Rate:` Tỷ lệ trường thông tin bị khuyết thiếu trong mỗi đợt nạp mới.
-4. `Model Performance Metrics (Recall & PR-AUC):` Giám sát độ nhạy của mô hình trên dữ liệu kỳ mới để tránh bỏ sót sinh viên nguy cơ.
-5. `Data Drift / Concept Drift:` Độ lệch phân phối của các biến chính (`Sem_GPA`, `Financial_Stress`) giữa tập huấn luyện và dữ liệu kỳ mới.
+1. `Pipeline Execution Latency:` Thời gian hoàn thành toàn bộ chu trình ETL + Inference (mục tiêu: < 2 phút).
+2. `Data Ingestion Error Rate:` Tỷ lệ bản ghi lỗi schema hoặc không thể nạp (mục tiêu: < 0,1%).
+3. `Missing Data Rate:` Tỷ lệ trường bị khuyết trong mỗi đợt nạp mới (mốc hiện tại: `Family_Income` ~4,5%; cảnh báo nếu > 10%).
+4. `Model Performance (Recall & PR-AUC):` Giám sát độ nhạy của mô hình trên dữ liệu kỳ mới để tránh bỏ sót sinh viên nguy cơ (theo dõi qua MLflow).
+5. `Data Drift:` Độ lệch phân phối của các biến chính (`Sem_GPA`, `Financial_Stress`) giữa tập huấn luyện và dữ liệu kỳ mới, đo bằng chỉ số PSI (cảnh báo nếu PSI > 0,2).
 
 ---
 
@@ -122,8 +147,8 @@ Lựa chọn **5 metrics cốt lõi** để kiểm tra tính ổn định:
 
 **Pipeline của nhóm:**
 ```text
-SIS / LMS / Survey (CSV/API) → Python ETL (Pandas) → PostgreSQL + MongoDB → MLflow (XGBoost) → Power BI Dashboard
+CSV (SIS/LMS/Survey) → MinIO (Raw) → Python ETL (Pandas) → PostgreSQL + MongoDB → MLflow → XGBoost Model → Power BI / Streamlit
 ```
 
 * **Lý giải ngắn gọn tại sao kiến trúc này phù hợp:**
-  Kiến trúc này **tinh gọn, thực dụng và loại bỏ triệt để tình trạng lãng phí tài nguyên (No Over-engineering)**. Với quy mô dữ liệu khoảng 79.239 bản ghi (~7.5 MB), việc sử dụng bộ ba `Python/Pandas + PostgreSQL/MongoDB + XGBoost` xử lý mượt mà 100% trong bộ nhớ với chi phí 0 đồng, thời gian triển khai nhanh, đồng thời vẫn đáp ứng đầy đủ các chuẩn công nghiệp hiện đại từ lưu trữ đa mô hình, quản lý phiên bản MLflow đến trực quan hóa dữ liệu.
+  Kiến trúc này **tinh gọn, thực dụng và không over-engineering ở tầng xử lý**. Với khoảng 79.239 bản ghi (~7,4 MB), dữ liệu được xử lý hoàn toàn trong bộ nhớ bằng Python/Pandas chỉ trong vài giây, nên không cần Spark/Flink. Tầng lưu trữ kế thừa thiết kế Polyglot của bài giữa kỳ: PostgreSQL cho dữ liệu tĩnh cần toàn vẹn, MongoDB cho dữ liệu học kỳ có schema linh hoạt, còn MinIO giữ dữ liệu thô để chạy lại khi cần. MLflow quản lý phiên bản mô hình XGBoost. Toàn bộ chạy local bằng Docker với chi phí 0 đồng nhưng vẫn theo chuẩn công nghiệp và dễ chuyển lên cloud khi quy mô tăng.
