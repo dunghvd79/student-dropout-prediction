@@ -25,6 +25,7 @@ Dự án tập trung xây dựng **Hệ thống Cảnh báo Sớm (Early Warning
    * [D – Học máy](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_MAY/README.md) (B9 – B13)
    * [E – Triển khai & Vận hành](./QUY_TRINH_DU_AN/GIAI_DOAN_E_TRIEN_KHAI_VAN_HANH/README.md) (B14 – B16)
    * [F – Kết thúc](./QUY_TRINH_DU_AN/GIAI_DOAN_F_KET_THUC/README.md) (B17)
+5. 📈 [**TIEN_DO.md**](./TIEN_DO.md): Tiến độ hiện tại, các bước đã xong, việc tiếp theo, quyết định đã chốt và cách làm tiếp khi quay lại.
 
 ---
 
