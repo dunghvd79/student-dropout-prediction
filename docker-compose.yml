@@ -1,0 +1,90 @@
+# Hạ tầng local của dự án (Bước 1 – QUY_TRINH_DU_AN/GIAI_DOAN_A_CHUAN_BI/B01_DUNG_MOI_TRUONG.md)
+# Khởi động:  docker compose up -d
+# Kiểm tra:   python -m src.check_env
+
+name: dropout-ews
+
+services:
+  # Image chính thức minio/minio đã bị gỡ khỏi Docker Hub và quay.io; dùng bản đóng gói
+  # của Bitnami (cùng phiên bản MinIO 2024.12.18). MINIO_DEFAULT_BUCKETS tự tạo bucket khi khởi động:
+  # raw (Bronze), processed (Silver), mlflow (artifact).
+  minio:
+    image: bitnamilegacy/minio:2024.12.18
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_DEFAULT_BUCKETS: raw,processed,mlflow
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/bitnami/minio/data
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16.6
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7.0.16
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    ports:
+      - "${MONGO_PORT:-27018}:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  mlflow:
+    build: ./docker/mlflow
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      MLFLOW_S3_ENDPOINT_URL: http://minio:9000
+      AWS_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+    # --serve-artifacts: client gửi artifact qua MLflow server, không cần khóa MinIO ở phía client
+    command: >
+      mlflow server
+      --host 0.0.0.0 --port 5000
+      --backend-store-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/mlflow
+      --artifacts-destination s3://mlflow
+      --serve-artifacts
+    ports:
+      - "${MLFLOW_PORT:-5000}:5000"
+    restart: unless-stopped
+
+  # Streamlit (Bước 15) được thêm khi có app/streamlit_app.py; trong lúc phát triển chạy trực tiếp từ .venv.
+
+volumes:
+  minio_data:
+  pg_data:
+  mongo_data:

@@ -1,0 +1,57 @@
+# Cấu hình chung của dự án. Bí mật (mật khẩu, khóa) nằm trong .env, KHÔNG đặt ở đây.
+
+project:
+  name: dropout-ews
+  random_state: 42
+
+paths:
+  source_csv: academic_survival_longitudinal.csv
+  data_dir: data
+  raw_dir: data/raw
+  processed_dir: data/processed
+  features_dir: data/features
+  splits_dir: data/splits
+  reports_dir: reports
+  figures_dir: reports/figures
+
+minio:
+  host: localhost
+  buckets:
+    raw: raw
+    processed: processed
+    mlflow: mlflow
+  raw_prefix: academic
+
+postgres:
+  host: localhost
+
+mongo:
+  host: localhost
+  collection: academic_semesters
+
+mlflow:
+  tracking_uri: http://localhost:5000
+  experiment: dropout_ews
+  model_name: dropout_model
+
+data:
+  expected_rows: 79239
+  expected_columns: 22
+  id_col: Student_ID
+  time_col: Semester
+  target_col: Target_Dropout_Next_Sem
+  censored_col: Censored
+  leakage_cols: [End_of_Semester_Status, Censored]
+
+split:
+  test_size: 0.2
+  cv_folds: 5
+
+model:
+  primary_metric: average_precision   # PR-AUC
+  target_recall: 0.80
+
+risk_levels:
+  # Mốc xác suất (đã hiệu chỉnh): Thấp < medium, Trung bình [medium, high), Cao >= high
+  medium: 0.3
+  high: 0.6

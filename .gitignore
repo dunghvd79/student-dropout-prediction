@@ -17,3 +17,8 @@ Thumbs.db
 
 # Environment Variables
 .env
+
+# Dữ liệu sinh ra bởi pipeline (tái tạo được từ dữ liệu gốc)
+data/
+mlruns/
+mlartifacts/

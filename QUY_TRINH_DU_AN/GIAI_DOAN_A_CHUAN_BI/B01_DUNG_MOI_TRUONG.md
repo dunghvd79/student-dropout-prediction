@@ -54,40 +54,49 @@ Máy cá nhân (khuyến nghị ≥ 8 GB RAM), Docker Desktop, Python ≥ 3.10, 
 ---
 
 ## 4. Biến đổi
-1. Tạo môi trường ảo: `python -m venv .venv` → kích hoạt.
-2. Tạo `requirements.txt` (ghim phiên bản) và cài đặt:
+1. Tạo môi trường ảo **Python 3.12** bằng `uv`: `uv venv --python 3.12 --seed .venv` → kích hoạt `.venv\Scripts\activate`. Không dùng Python 3.14 vì một số thư viện (shap, lightgbm, mlflow) chưa hỗ trợ ổn định.
+2. Tạo `requirements.txt` (ghim phiên bản) và cài đặt bằng `uv pip install -r requirements.txt`:
    * Xử lý dữ liệu: `pandas`, `numpy`, `pyarrow`
    * Kết nối CSDL: `sqlalchemy`, `psycopg2-binary`, `pymongo`, `minio`
    * Học máy: `scikit-learn`, `imbalanced-learn`, `xgboost`, `lightgbm`, `shap`, `optuna`
    * Khai phá dữ liệu: `mlxtend`
    * Theo dõi mô hình: `mlflow`
    * Trực quan hóa: `matplotlib`, `seaborn`, `plotly`, `streamlit`, `jupyter`
-3. Tạo `docker-compose.yml` gồm 5 dịch vụ:
+3. Tạo `docker-compose.yml` gồm các dịch vụ:
 
-   | Dịch vụ | Cổng | Volume |
-   |---|---|---|
-   | MinIO | 9000 (API), 9001 (console) | `minio_data` |
-   | PostgreSQL | 5432 | `pg_data` |
-   | MongoDB | 27017 | `mongo_data` |
-   | MLflow Tracking Server | 5000 | (dùng PostgreSQL + MinIO) |
-   | Streamlit | 8501 | – |
+   | Dịch vụ | Image | Cổng trên máy | Volume |
+   |---|---|---|---|
+   | MinIO | `bitnamilegacy/minio:2024.12.18` | 9000 (API), 9001 (console) | `minio_data` |
+   | PostgreSQL | `postgres:16.6` | **5433** | `pg_data` |
+   | MongoDB | `mongo:7.0.16` | **27018** | `mongo_data` |
+   | MLflow Tracking Server | build từ `docker/mlflow/Dockerfile` | 5000 | (dùng PostgreSQL + MinIO) |
+   | Streamlit | – | 8501 | Thêm ở B15; khi phát triển chạy trực tiếp từ `.venv` |
 
-4. Tạo `.env` (không commit) và `.env.example`.
-5. Tạo `config/settings.yaml`: đường dẫn, `random_state = 42`, ngưỡng rủi ro (0,3 / 0,6), tỷ lệ Test (0,2).
-6. Tạo cấu trúc thư mục dự án; thêm `data/`, `mlruns/` vào `.gitignore`.
+   **Ghi chú thực tế khi dựng:**
+   * Image chính thức `minio/minio` đã bị gỡ khỏi Docker Hub và quay.io, nên dùng bản đóng gói của Bitnami (cùng phiên bản MinIO). Biến `MINIO_DEFAULT_BUCKETS=raw,processed,mlflow` tự tạo 3 bucket khi khởi động.
+   * Cổng **5433** và **27018** được chọn vì 5432 và 27017 thường đã bị PostgreSQL / MongoDB khác trên máy chiếm. Đổi trong `.env` nếu cần.
+   * PostgreSQL có thêm database `mlflow` (tạo bởi `docker/postgres-init/01_create_mlflow_db.sql`) để bảng của MLflow tách khỏi bảng nghiệp vụ.
+   * Ghim `alembic==1.14.0` và `sqlalchemy==2.0.36`: bản Alembic mới hơn không chạy được với MLflow 2.19.
+
+4. Tạo `.env` từ `.env.example` (không commit; đổi mật khẩu).
+5. Tạo `config/settings.yaml`: đường dẫn, `random_state = 42`, ngưỡng rủi ro (0,3 / 0,6), tỷ lệ Test (0,2); `src/config.py` đọc settings + `.env` và tạo chuỗi kết nối dùng chung.
+6. Tạo cấu trúc thư mục dự án; thêm `data/`, `mlruns/`, `mlartifacts/` vào `.gitignore`.
+7. Chạy `python -m src.check_env` để kiểm tra thư viện, dữ liệu gốc, MinIO, PostgreSQL, MongoDB và MLflow.
 
 ---
 
 ## 5. Output
-* `requirements.txt`, `docker-compose.yml`, `.env.example`, `config/settings.yaml`.
-* 5 container đang chạy; các thư mục `src/`, `notebooks/`, `config/`, `sql/`, `app/`, `reports/`, `data/`.
+* `requirements.txt`, `docker-compose.yml`, `docker/`, `.env.example`, `config/settings.yaml`, `src/config.py`, `src/check_env.py`.
+* 4 container đang chạy (MinIO, PostgreSQL, MongoDB, MLflow); các thư mục `src/`, `notebooks/`, `config/`, `sql/`, `app/`, `dashboards/`, `reports/`, `data/`.
 
 ## 6. Công cụ / File thực hiện
 Docker Desktop, `docker compose`, `pip`, Git.
 
 ## 7. Tiêu chí hoàn thành
-- [ ] Mọi thành viên chạy `docker compose up -d` và `pip install -r requirements.txt` thành công.
-- [ ] Truy cập được MinIO console (`localhost:9001`) và MLflow UI (`localhost:5000`); kết nối được PostgreSQL và MongoDB từ Python.
+- [x] Chạy `docker compose up -d` và `uv pip install -r requirements.txt` thành công.
+- [x] `python -m src.check_env` báo "Tất cả đều sẵn sàng" (đã kiểm tra 2026-10-11).
+- [x] MLflow ghi được artifact vào bucket `mlflow` của MinIO.
+- [ ] Mọi thành viên khác trong nhóm lặp lại được trên máy của mình.
 
 ---
 

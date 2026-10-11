@@ -51,6 +51,37 @@ Early Warning Dashboard (Power BI / Streamlit)
 
 ---
 
+## 🛠️ Cài đặt & chạy môi trường
+
+Yêu cầu: Docker Desktop, [uv](https://docs.astral.sh/uv/) (hoặc Python 3.12).
+
+```powershell
+# 1. Biến môi trường (đổi mật khẩu trong .env)
+copy .env.example .env
+
+# 2. Hạ tầng: MinIO, PostgreSQL, MongoDB, MLflow
+docker compose up -d
+
+# 3. Môi trường Python 3.12
+uv venv --python 3.12 --seed .venv
+.venv\Scripts\activate
+uv pip install -r requirements.txt
+
+# 4. Kiểm tra mọi thứ đã sẵn sàng
+python -m src.check_env
+```
+
+| Dịch vụ | Địa chỉ |
+|---|---|
+| MinIO console | http://localhost:9001 (tài khoản trong `.env`) |
+| MLflow UI | http://localhost:5000 |
+| PostgreSQL | `localhost:5433` (database `dropout_ews`, `mlflow`) |
+| MongoDB | `localhost:27018` |
+
+> PostgreSQL và MongoDB dùng cổng 5433 / 27018 để không trùng với bản cài sẵn trên máy (5432 / 27017).
+
+---
+
 ## 📊 Tập dữ liệu (Dataset)
 * Tệp dữ liệu gốc: `academic_survival_longitudinal.csv`
 * Quy mô: **79.239 bản ghi** của **20.000 sinh viên**, theo dõi qua 1 - 8 học kỳ (trung bình ~4 kỳ).
