@@ -89,6 +89,7 @@ CHECKS = [
 
 
 def main() -> int:
+    sys.stdout.reconfigure(encoding="utf-8")
     print(f"Python {sys.version.split()[0]}")
     failed = 0
     for name, fn in CHECKS:

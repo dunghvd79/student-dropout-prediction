@@ -71,11 +71,11 @@ Mô hình phân tầng dữ liệu phổ biến trong Data Lake:
 ---
 
 ## 4. Biến đổi
-1. **Kiểm tra schema đầu vào:** đủ 22 cột đúng tên; các cột số đọc được thành số. Sai schema → dừng và ghi lỗi.
-2. **Tính checksum MD5** của file. Nếu trùng MD5 với một lô đã `SUCCESS`, bỏ qua (idempotent).
-3. **Đặt key theo lô:** `raw/academic/ingest_date=YYYY-MM-DD/academic_survival_longitudinal.csv`.
-4. **Upload lên MinIO**, bucket `raw`, không ghi đè lô cũ.
-5. **Ghi nhật ký** vào `ingestion_log` (PostgreSQL): `batch_id`, `file_path`, `row_count`, `md5`, `status`, `ingested_at`.
+1. **Tính checksum MD5** của file. Nếu trùng MD5 với một lô đã `SUCCESS` thì bỏ qua và ghi `SKIPPED` (idempotent).
+2. **Kiểm tra schema đầu vào** theo `src/schema.py`: đủ 22 cột đúng tên, đúng thứ tự; các cột số đọc được thành số (ô trống được phép, xử lý ở B3/B4). Sai schema → ghi `FAILED`, không upload.
+3. **Đặt key theo lô:** bucket `raw`, key `academic/ingest_date=YYYY-MM-DD/batch_id=<batch_id>/academic_survival_longitudinal.csv`. Mỗi lần nạp có `batch_id` riêng (`<thời điểm UTC>_<6 ký tự ngẫu nhiên>`), nên không bao giờ ghi đè lô cũ.
+4. **Upload lên MinIO** kèm metadata (`md5`, `row-count`, `batch-id`), sau đó **tải ngược và so MD5** để chắc file không hỏng khi truyền.
+5. **Ghi nhật ký** vào bảng `ingestion_log` (PostgreSQL, tạo bởi `sql/01_ingestion_log.sql`): `batch_id`, `source_file`, `bucket`, `object_key`, `row_count`, `column_count`, `file_size_bytes`, `md5`, `status` (`SUCCESS` / `FAILED` / `SKIPPED`), `message`, `ingested_at`.
 
 ---
 
@@ -84,12 +84,15 @@ Mô hình phân tầng dữ liệu phổ biến trong Data Lake:
 * 1 dòng mới trong `ingestion_log` (ví dụ `row_count = 79239`, `status = SUCCESS`).
 
 ## 6. Công cụ / File thực hiện
-`src/ingest.py` (thư viện `minio`, `pandas`, `sqlalchemy`, `hashlib`).
+* `src/ingest.py`: chạy `python -m src.ingest [--file PATH] [--date YYYY-MM-DD]`.
+* `src/schema.py` (hợp đồng 22 cột), `src/db.py` (kết nối), `sql/01_ingestion_log.sql`.
+* `tests/test_ingest.py`: 8 unit test cho kiểm tra schema và MD5 (`python -m pytest tests`).
 
-## 7. Tiêu chí hoàn thành
-- [ ] `row_count` trong log = 79.239.
-- [ ] Tải ngược file từ MinIO có MD5 trùng với file gốc.
-- [ ] Chạy `ingest.py` lần hai không tạo lô trùng.
+## 7. Tiêu chí hoàn thành (đã kiểm tra 2026-10-11)
+- [x] `row_count` trong log = 79.239; object `s3://raw/academic/ingest_date=2026-10-11/batch_id=20261011T085849Z_7df267/academic_survival_longitudinal.csv` (MD5 `94f87baf205fb7f1446639749a2dd852`).
+- [x] Tải ngược file từ MinIO có MD5 trùng với file gốc (kiểm tra tự động trong `ingest.py`).
+- [x] Chạy `ingest.py` lần hai → `SKIPPED`, không tạo lô trùng.
+- [x] File hỏng (đổi tên cột `Sem_GPA` → `GPA`) → `FAILED`, không upload, mã thoát 1.
 
 ---
 
