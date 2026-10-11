@@ -29,19 +29,22 @@
 
 1. **Giá trị khuyết thiếu (Missing Values):** 
    * *Thực tế:* `Family_Income` thiếu **3.604 dòng (~4,5%)** do sinh viên không khai báo; `LMS_Logins` thiếu **867 dòng (~1,1%)**.
-   * *Cách xử lý:* `Family_Income` điền bằng trung vị (Median) theo nhóm `Household_Size` và thêm cột cờ `Income_Missing`. `LMS_Logins` điền bằng giá trị của chính sinh viên đó ở kỳ trước (forward-fill theo `Student_ID`), nếu không có thì dùng trung vị.
+   * *Cách xử lý:* `Family_Income` của một sinh viên **không đổi qua các kỳ**, nên trước hết điền bằng giá trị ở kỳ khác của chính sinh viên đó (ffill + bfill theo `Student_ID`). Cách này khôi phục được **3.387 / 3.604 dòng (94%)**. Phần còn lại (199 sinh viên không khai báo ở kỳ nào) điền bằng trung vị theo nhóm `Household_Size`, với trung vị tính trên tập Train, và thêm cột cờ `Income_Missing`. `LMS_Logins` điền bằng giá trị của chính sinh viên đó ở kỳ trước (forward-fill theo `Student_ID`), nếu không có thì dùng trung vị.
 2. **Giá trị bất thường / Ngoại lai (Outliers):**
-   * *Thực tế:* `Attendance` nằm ngoài khoảng hợp lệ [0, 100] (min = **-2**, max = **105**); `Family_Income` lệch phải mạnh (từ 3.000 đến **488.000**).
-   * *Cách xử lý:* Chặn `Attendance` về [0, 100] (Clipping). `Family_Income` dùng biến đổi log (`log1p`) hoặc chặn theo IQR (Winsorization).
+   * *Thực tế:* `Attendance` nằm ngoài khoảng hợp lệ [0, 100] (min = **-2**, max = **105**; 249 dòng). `Family_Income` lệch phải mạnh (từ 3.000 đến **488.000**). `Financial_Stress` được mô tả là thang 1 - 5 nhưng thực tế là **chỉ số liên tục lệch phải** (trung vị 2,1; P99 = 9,0; max = **18,6**; 7.348 dòng > 5).
+   * *Cách xử lý:* Chặn `Attendance` về [0, 100] (Clipping), vì giá trị ngoài khoảng này là lỗi nhập liệu. `Family_Income` dùng biến đổi log (`log1p`) hoặc chặn theo IQR (Winsorization). `Financial_Stress` **không được chặn về 5**: tỷ lệ bỏ học tăng đều theo chỉ số này (4,6% ở mức 1 → 18% ở mức 5 → 47% ở mức ≥ 10), nên giá trị cao là tín hiệu thật chứ không phải lỗi. Chỉ chặn ở P99 (Winsorization) hoặc dùng `log1p` cho các mô hình tuyến tính; các mô hình cây dùng giá trị gốc.
 3. **Sai lệch định dạng phân loại (Categorical Inconsistency):**
-   * *Thực tế:* `Gender` có 8 cách ghi cho cùng ý nghĩa: `Female / female / F`, `Male / male / M`, `Other`, `Prefer not to say`.
-   * *Cách xử lý:* Chuẩn hóa `lower().strip()` rồi map về 3 nhóm: `Female`, `Male`, `Other/Unknown`.
+   * *Thực tế:* `Gender` có 8 cách ghi cho cùng ý nghĩa: `Female / female / F`, `Male / male / M`, `Other`, `Prefer not to say`. `Housing_Status` có 3 giá trị hợp lệ: `On-Campus`, `Off-Campus`, `With Parents`.
+   * *Cách xử lý:* Chuẩn hóa `lower().strip()` rồi map về 3 nhóm: `Female`, `Male`, `Other/Unknown`. `Housing_Status` giữ nguyên 3 nhóm và mã hóa One-Hot.
 4. **Trùng lặp bản ghi (kiểm tra phòng ngừa):**
    * *Thực tế:* Hiện **không có** bản ghi trùng (`Student_ID`, `Semester`), nhưng có thể phát sinh khi nạp lại file.
    * *Cách xử lý:* Luôn chạy `drop_duplicates(subset=['Student_ID', 'Semester'], keep='last')` ở đầu pipeline.
 5. **Rò rỉ dữ liệu (Data Leakage):**
    * *Thực tế:* Cột `End_of_Semester_Status` (`Dropped_Out`, `Graduated`, `Enrolled`) và `Censored` chứa thông tin kết quả.
-   * *Cách xử lý:* Loại 2 cột này khỏi tập đặc trưng khi huấn luyện mô hình.
+   * *Cách xử lý:* Loại 2 cột này khỏi tập đặc trưng khi huấn luyện mô hình. Lưu ý `Target_Dropout_Next_Sem = 1` **khi và chỉ khi** `End_of_Semester_Status = Dropped_Out`, nên giữ lại cột này sẽ cho kết quả "hoàn hảo" giả.
+6. **Nhãn chưa xác định do dữ liệu bị cắt (Right-censoring):**
+   * *Thực tế:* **11.115 dòng** có `Censored = 1`. Đây là kỳ cuối cùng quan sát được của những sinh viên chưa bỏ học cũng chưa tốt nghiệp. Nhãn của các dòng này đang là 0, nhưng thực chất **chưa biết** kỳ sau sinh viên có bỏ học hay không.
+   * *Cách xử lý:* Không dùng các dòng này để huấn luyện và kiểm thử. Tập có nhãn còn **68.124 dòng**, trong đó lớp bỏ học chiếm 10,2%. 11.115 dòng `Censored = 1` chính là **tập sinh viên đang theo học cần chấm điểm rủi ro** ở bước Batch Inference.
 
 ---
 
@@ -60,10 +63,11 @@ Chuỗi biến đổi từ dữ liệu thô sang dữ liệu sạch sẵn sàng 
 Raw Ingestion → Join data (SIS + LMS + Survey theo Student_ID, Semester) → Remove Duplicates
 → Handle Missing Values → Fix Outliers → Standardize & Encode Categoricals
 → Feature Engineering (Delta GPA, Delta Attendance, Cumulative Failed Courses)
-→ Drop Leakage Columns → Train/Test Split (GroupKFold by Student_ID)
+→ Drop Leakage Columns → Tách dòng Censored = 1 ra làm tập chấm điểm
+→ Train/Test Split (GroupKFold by Student_ID)
 → Feature Scaling (fit trên tập Train, áp dụng cho Test)
 ```
-> Scaling được thực hiện **sau** khi chia Train/Test để tránh rò rỉ thông tin từ tập Test. Chia theo `Student_ID` để cùng một sinh viên không xuất hiện ở cả hai tập.
+> Scaling được thực hiện **sau** khi chia Train/Test để tránh rò rỉ thông tin từ tập Test. Chia theo `Student_ID` để cùng một sinh viên không xuất hiện ở cả hai tập. Chi tiết input, biến đổi và output của từng bước xem tại thư mục [`QUY_TRINH_DU_AN/`](./QUY_TRINH_DU_AN/README.md).
 
 ---
 
@@ -84,7 +88,7 @@ Kế thừa kiến trúc **Polyglot Persistence (PostgreSQL + MongoDB)** đã th
 |---|---|---|---|
 | **Raw Data Lake** | **Object Storage** (MinIO local, tương thích AWS S3) | Tệp gốc CSV/Parquet của mỗi đợt nạp | Lưu vết lịch sử (audit trail), cho phép chạy lại pipeline từ đầu |
 | **Dữ liệu tĩnh & kết quả** | **PostgreSQL** (Relational DB) | `students`, `financial_profiles` (như bài giữa kỳ) + bảng mới `predictions` (Risk Score mỗi lần chạy batch) | Dữ liệu cấu trúc cố định, cần ACID, khóa chính/khóa ngoại; Power BI kết nối trực tiếp |
-| **Dữ liệu theo học kỳ** | **MongoDB** (Document DB) | Collection `academic_semesters`: mỗi document là một kỳ của một sinh viên, gồm các object lồng nhau `academic_performance`, `engagement`, `socio_economic`, `outcome` | Schema linh hoạt khi thêm chỉ số hành vi mới (ví dụ log LMS chi tiết, kết quả khảo sát JSON) mà không phải sửa bảng |
+| **Dữ liệu theo học kỳ** | **MongoDB** (Document DB) | Collection `academic_semesters`: mỗi document là một kỳ của một sinh viên, gồm các object lồng nhau `academic_performance`, `engagement`, `socio_economic` (gồm cả `emergency_expense` vì biến động theo kỳ), `outcome` | Schema linh hoạt khi thêm chỉ số hành vi mới (ví dụ log LMS chi tiết, kết quả khảo sát JSON) mà không phải sửa bảng |
 
 * **Vì sao không dùng một CSDL duy nhất:** Ở quy mô hiện tại (~7,4 MB) PostgreSQL một mình vẫn chạy được. Nhóm vẫn tách MongoDB vì dữ liệu học kỳ đến từ LMS và khảo sát, là những nguồn **thường xuyên thêm trường mới**. Document DB giúp nạp các trường này mà không cần migrate schema. Chi phí vận hành thêm thấp vì cả hai chạy chung trong `docker-compose`.
 * **Cách ghép dữ liệu cho ML:** ETL đọc `students` + `financial_profiles` từ PostgreSQL và `academic_semesters` từ MongoDB, rồi join theo `student_id` bằng Pandas để tạo bảng đặc trưng.
@@ -113,8 +117,8 @@ Kế thừa kiến trúc **Polyglot Persistence (PostgreSQL + MongoDB)** đã th
 ---
 
 ### 10. Machine Learning & Quản lý phiên bản (Model Management)
-* **Mục đích của Model:** Dự đoán xác suất sinh viên bỏ học ở kỳ tiếp theo (`Target_Dropout_Next_Sem = 1`, chiếm ~**8,7%** dữ liệu, mất cân bằng lớp) và gán Risk Score: **Thấp** (< 0,3), **Trung bình** (0,3 – 0,6), **Cao** (≥ 0,6).
-* **Nơi chạy:** Batch Inference Script bằng Python (Scikit-Learn, XGBoost) chạy định kỳ trên máy local/container; kết quả ghi vào bảng `predictions` trong PostgreSQL.
+* **Mục đích của Model:** Dự đoán xác suất sinh viên bỏ học ở kỳ tiếp theo (`Target_Dropout_Next_Sem = 1`, chiếm ~**8,7%** toàn bộ dữ liệu và **10,2%** tập có nhãn sau khi loại các dòng `Censored = 1`, mất cân bằng lớp) và gán Risk Score: **Thấp** (< 0,3), **Trung bình** (0,3 – 0,6), **Cao** (≥ 0,6).
+* **Nơi chạy:** Batch Inference Script bằng Python (Scikit-Learn, XGBoost) chạy định kỳ trên máy local/container. Đối tượng được chấm điểm là kỳ mới nhất của các sinh viên đang theo học (11.115 dòng `Censored = 1`). Kết quả ghi vào bảng `predictions` trong PostgreSQL.
 * **Công cụ quản lý phiên bản:** **MLflow** (chạy trong container Docker, backend store là PostgreSQL, artifact store là MinIO) để:
   * Theo dõi tham số (Hyperparameters), độ đo (Recall, F1-Score, PR-AUC).
   * Đăng ký và quản lý phiên bản mô hình (Model Registry: Staging, Production).

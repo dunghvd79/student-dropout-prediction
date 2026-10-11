@@ -1,0 +1,112 @@
+# BƯỚC 3. KIỂM TRA CHẤT LƯỢNG DỮ LIỆU (DATA PROFILING & VALIDATION)
+**Giai đoạn B – Kỹ thuật dữ liệu (ETL)** · [← Bước 2](./B02_THU_THAP_NAP_DU_LIEU_THO.md) · [Bước 4 →](./B04_LAM_SACH_DU_LIEU.md)
+
+---
+
+## 1. Nhiệm vụ
+**Đo lường mọi vấn đề chất lượng trước khi sửa**, rồi ra quyết định xử lý có căn cứ cho từng vấn đề. Nguyên tắc: *"Đo trước, sửa sau"*. Không sửa mù quáng.
+
+---
+
+## 2. Cơ sở lý thuyết
+
+### 2.1. Sáu chiều chất lượng dữ liệu (Data Quality Dimensions)
+
+| Chiều | Câu hỏi kiểm tra | Ví dụ trong dataset |
+|---|---|---|
+| **Completeness** (Đầy đủ) | Có bị thiếu giá trị không? | `Family_Income` thiếu 4,5% |
+| **Validity** (Hợp lệ) | Giá trị có nằm trong miền cho phép? | `Attendance` = −2 hoặc 105 |
+| **Consistency** (Nhất quán) | Cùng một ý nghĩa có ghi giống nhau không? | `Gender`: "F", "female", "Female" |
+| **Uniqueness** (Duy nhất) | Có bản ghi trùng không? | Khóa `(Student_ID, Semester)` |
+| **Accuracy** (Chính xác) | Giá trị có phản ánh đúng thực tế? | Kiểm tra logic giữa nhãn và trạng thái |
+| **Timeliness** (Kịp thời) | Dữ liệu có cập nhật đúng hạn? | Theo dõi `ingested_at` mỗi lô |
+
+### 2.2. Cơ chế dữ liệu thiếu (Rubin, 1976)
+Cách điền khuyết đúng phụ thuộc vào **vì sao** dữ liệu bị thiếu:
+
+| Cơ chế | Định nghĩa | Hệ quả |
+|---|---|---|
+| **MCAR** – Missing Completely At Random | Thiếu hoàn toàn ngẫu nhiên, không liên quan tới bất kỳ biến nào | Xóa hoặc điền đơn giản không gây lệch |
+| **MAR** – Missing At Random | Thiếu phụ thuộc vào **biến quan sát được khác** (ví dụ theo `Household_Size`) | Điền theo nhóm / theo mô hình dùng biến liên quan |
+| **MNAR** – Missing Not At Random | Thiếu phụ thuộc vào **chính giá trị bị thiếu** (ví dụ thu nhập thấp nên ngại khai) | Bản thân việc thiếu là thông tin, nên thêm **cờ thiếu (missing indicator)** |
+
+`Family_Income` có thể là MNAR (sinh viên ngại khai báo), vì vậy nhóm thêm cờ `Income_Missing` để mô hình tự học xem việc "không khai báo" có liên quan đến bỏ học hay không.
+
+### 2.3. Phát hiện ngoại lai (Outliers)
+* **Quy tắc IQR (Tukey):** ngoại lai nếu $x < Q_1 - 1{,}5 \cdot IQR$ hoặc $x > Q_3 + 1{,}5 \cdot IQR$, với $IQR = Q_3 - Q_1$.
+* **Z-score:** ngoại lai nếu $|z| = \left|\frac{x-\mu}{\sigma}\right| > 3$. Chỉ phù hợp với phân phối gần chuẩn.
+* **Kiểm tra miền nghiệp vụ:** giá trị vi phạm quy tắc logic (tỷ lệ % ngoài [0, 100]).
+
+**Phân biệt hai loại ngoại lai:**
+
+| Loại | Ví dụ | Cách xử lý |
+|---|---|---|
+| **Lỗi dữ liệu** (không thể xảy ra) | `Attendance` = 105% | Sửa / chặn (clip) |
+| **Giá trị cực đoan hợp lệ** (hiếm nhưng có thật) | `Family_Income` = 488.000; `Financial_Stress` = 18,6 | **Giữ lại**; biến đổi log / winsorize nếu mô hình nhạy cảm |
+
+Xóa nhầm giá trị cực đoan hợp lệ sẽ **làm mất tín hiệu**. Ví dụ: tỷ lệ bỏ học ở nhóm `Financial_Stress` ≥ 10 là 47%, so với 4,6% ở mức 1.
+
+### 2.4. Rò rỉ nhãn (Target Leakage)
+Rò rỉ xảy ra khi một đặc trưng **chứa thông tin về nhãn mà tại thời điểm dự đoán chưa thể biết**. Mô hình sẽ đạt điểm "hoàn hảo" khi kiểm thử nhưng vô dụng khi triển khai.
+* Trong dataset: `Target = 1` **khi và chỉ khi** `End_of_Semester_Status = Dropped_Out`. Đây là rò rỉ tuyệt đối.
+
+### 2.5. Dữ liệu bị cắt phải (Right-censoring)
+* Thuật ngữ của **Phân tích sống sót (Survival Analysis)**: ta biết sinh viên **còn theo học đến kỳ *t***, nhưng **không quan sát được** điều xảy ra sau đó (dữ liệu kết thúc).
+* Dòng cuối của sinh viên bị cắt có nhãn 0, nhưng nhãn này **chưa được xác nhận**. Dùng chúng để huấn luyện như "chắc chắn ở lại" sẽ làm mô hình **đánh giá thấp rủi ro**.
+
+### 2.6. Data Contract
+Tập quy tắc kiểm tra được **viết thành code** (số cột, kiểu, miền giá trị, tỷ lệ thiếu tối đa) và chạy tự động mỗi lần nạp dữ liệu mới. Lô vi phạm sẽ bị chặn trước khi làm hỏng các bước sau.
+
+---
+
+## 3. Input
+File thô từ MinIO (79.239 × 22).
+
+---
+
+## 4. Biến đổi (các phép kiểm tra)
+1. Đếm giá trị thiếu theo cột.
+2. Kiểm tra miền giá trị hợp lệ (min/max, tập giá trị cho phép).
+3. Đếm số cách ghi khác nhau của cột phân loại.
+4. Kiểm tra trùng khóa `(Student_ID, Semester)`.
+5. Kiểm tra tính liên tục của học kỳ cho mỗi sinh viên (1, 2, …, n).
+6. Kiểm tra cột nào cố định theo sinh viên, cột nào thay đổi theo kỳ.
+7. Kiểm tra quan hệ logic giữa nhãn và các cột trạng thái.
+
+### Kết quả kiểm tra thực tế & quyết định xử lý
+
+| # | Vấn đề | Số liệu thực tế | Quyết định xử lý (bước) |
+|:---:|---|---|---|
+| 1 | `Family_Income` thiếu | 3.604 dòng (4,5%); cột **không đổi theo kỳ**; 3.387 dòng lấy lại được từ kỳ khác của cùng sinh viên; 199 sinh viên thiếu ở mọi kỳ | Điền theo sinh viên (B4); phần còn lại + cờ `Income_Missing`, điền trung vị trong Pipeline (B10) |
+| 2 | `LMS_Logins` thiếu | 867 dòng (1,1%), 206 dòng ở kỳ 1 | Forward-fill theo sinh viên (B4); phần còn lại điền trung vị (B10) |
+| 3 | `Attendance` ngoài [0, 100] | 85 dòng < 0 (min −2), 164 dòng > 100 (max 105) | Clip về [0, 100] (B4) |
+| 4 | `Financial_Stress` vượt thang 1 – 5 | Trung vị 2,1; P99 = 9,0; max 18,6; 7.348 dòng > 5. Tỷ lệ bỏ học tăng đều theo chỉ số | **Giữ nguyên**; winsorize P99 / `log1p` cho mô hình tuyến tính (B10) |
+| 5 | `Family_Income` lệch phải | 3.000 → 488.000 | `log1p` cho mô hình tuyến tính (B10) |
+| 6 | `Gender` không nhất quán | 8 cách ghi | Map về 3 nhóm (B4) |
+| 7 | `Housing_Status` | 3 giá trị hợp lệ: On-Campus, Off-Campus, With Parents | Giữ nguyên, One-Hot (B10) |
+| 8 | Trùng lặp | 0 dòng trùng | Vẫn chạy `drop_duplicates` để phòng ngừa (B4) |
+| 9 | Tính liên tục học kỳ | 100% liên tục từ kỳ 1 | Không cần xử lý |
+| 10 | Rò rỉ nhãn | `Target = 1` ⇔ `Dropped_Out` | Loại `End_of_Semester_Status`, `Censored` khỏi đặc trưng (B9) |
+| 11 | Nhãn bị cắt | 11.115 dòng `Censored = 1` | Loại khỏi Train/Test, dùng làm tập chấm điểm (B9, B14) |
+
+---
+
+## 5. Output
+* `reports/data_quality_report.md`: bảng trên kèm biểu đồ phân phối các cột lỗi.
+* Bộ quy tắc kiểm tra tự động (data contract) trong `src/validate.py`.
+
+## 6. Công cụ / File thực hiện
+`src/validate.py`, notebook `01_data_cleaning_eda.ipynb` (phần 1) – `pandas`; tùy chọn `ydata-profiling`, `great_expectations`.
+
+## 7. Tiêu chí hoàn thành
+- [ ] Mọi cột đều có kết luận "sạch" hoặc "có vấn đề + cách xử lý".
+- [ ] `validate.py` chạy tự động và trả về lỗi khi đưa vào một file cố tình làm hỏng.
+
+---
+
+## 8. Câu hỏi bảo vệ thường gặp
+**Hỏi:** Vì sao không xóa luôn các dòng thiếu `Family_Income`?  
+**Đáp:** Sẽ mất 4,5% dữ liệu và có thể gây lệch nếu việc thiếu không ngẫu nhiên (MNAR). Hơn nữa, 94% số dòng thiếu lấy lại được từ kỳ khác của chính sinh viên đó.
+
+**Hỏi:** `Financial_Stress` lên tới 18,6 trong khi mô tả là thang 1 – 5, vì sao không chặn về 5?  
+**Đáp:** Tỷ lệ bỏ học tăng đều theo chỉ số này (4,6% → 47%), nên giá trị cao là tín hiệu thật. Chặn về 5 sẽ xóa mất sự khác biệt giữa nhóm rủi ro vừa và rủi ro rất cao.

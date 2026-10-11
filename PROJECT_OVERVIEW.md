@@ -40,17 +40,17 @@ Dataset gồm **22 thuộc tính**, được chia thành 5 nhóm thông tin:
 | **I** | **Định danh & Nhân khẩu học** | | |
 | 1 | `Student_ID` | Mã định danh duy nhất của sinh viên | Categorical / ID |
 | 2 | `Age` | Tuổi sinh viên | Numerical |
-| 3 | `Gender` | Giới tính (Male / Female) | Categorical |
+| 3 | `Gender` | Giới tính (Male / Female / Other / Prefer not to say; dữ liệu thô có 8 cách ghi, cần chuẩn hóa) | Categorical |
 | 4 | `First_Generation` | Thế hệ đầu tiên trong gia đình học đại học (0/1) | Binary |
-| 5 | `Household_Size` | Số nhân khẩu trong gia đình | Numerical |
-| 6 | `Housing_Status` | Tình trạng cư trú (On-Campus / Off-Campus) | Categorical |
+| 5 | `Household_Size` | Số nhân khẩu trong gia đình (1 - 6) | Numerical |
+| 6 | `Housing_Status` | Tình trạng cư trú (On-Campus / Off-Campus / With Parents) | Categorical |
 | **II**| **Kinh tế & Áp lực tài chính** | | |
-| 7 | `Family_Income` | Thu nhập gia đình hàng năm (có giá trị khuyết thiếu) | Numerical |
+| 7 | `Family_Income` | Thu nhập gia đình hàng năm, không đổi theo kỳ (thiếu ~4,5% số dòng) | Numerical |
 | 8 | `Scholarship` | Có học bổng hay không (0/1) | Binary |
 | 9 | `Tuition_Base` | Mức học phí cơ sở | Numerical |
 | 10 | `Work_Hours` | Số giờ làm thêm mỗi tuần | Numerical |
-| 11 | `Emergency_Expense` | Chi phí phát sinh khẩn cấp | Numerical |
-| 12 | `Financial_Stress` | Mức độ áp lực tài chính tự đánh giá (thang điểm 1 - 5) | Numerical |
+| 11 | `Emergency_Expense` | Chi phí phát sinh khẩn cấp trong học kỳ (thay đổi theo kỳ) | Numerical |
+| 12 | `Financial_Stress` | Chỉ số áp lực tài chính (liên tục, từ 1,0; trung vị 2,1, lệch phải, tối đa 18,6) | Numerical |
 | **III**| **Hành vi & Tương tác học tập** | | |
 | 13 | `Semester` | Học kỳ thứ mấy (từ 1 đến 8) | Ordinal |
 | 14 | `Course_Load` | Số tín chỉ đăng ký trong học kỳ | Numerical |
@@ -61,9 +61,9 @@ Dataset gồm **22 thuộc tính**, được chia thành 5 nhóm thông tin:
 | 18 | `Sem_GPA` | Điểm trung bình học kỳ | Numerical |
 | 19 | `Failed_Courses` | Số môn học bị trượt trong học kỳ | Numerical |
 | **V** | **Nhãn mục tiêu & Trạng thái** | | |
-| 20 | `Target_Dropout_Next_Sem` | **Biến mục tiêu chính**: Bỏ học ở học kỳ kế tiếp hay không (0 = Ở lại, 1 = Bỏ học) | **Target (Binary)** |
-| 21 | `End_of_Semester_Status` | Trạng thái cuối học kỳ (Enrolled / Dropped / Graduated) | Categorical |
-| 22 | `Censored` | Bản ghi bị kiểm duyệt (thuật ngữ Survival Analysis) | Binary |
+| 20 | `Target_Dropout_Next_Sem` | **Biến mục tiêu chính**: Bỏ học ở học kỳ kế tiếp hay không (0 = Ở lại, 1 = Bỏ học); lớp 1 chiếm ~8,7% | **Target (Binary)** |
+| 21 | `End_of_Semester_Status` | Trạng thái cuối học kỳ (Enrolled / Dropped_Out / Graduated); trùng hoàn toàn với nhãn nên **không được dùng làm đặc trưng** | Categorical |
+| 22 | `Censored` | = 1 ở kỳ cuối cùng quan sát được của sinh viên chưa bỏ học cũng chưa tốt nghiệp (dữ liệu bị cắt, thuật ngữ Survival Analysis) | Binary |
 
 ---
 
@@ -75,7 +75,7 @@ Dataset gồm **22 thuộc tính**, được chia thành 5 nhóm thông tin:
                        ▼
 ┌──────────────────────────────────────────────┐
 │  BƯỚC 1: TIỀN XỬ LÝ & LÀM SẠCH DỮ LIỆU       │
-│  - Xử lý giá trị khuyết (Family_Income)      │
+│  - Khuyết thiếu: Family_Income, LMS_Logins   │
 │  - Xử lý kiểu dữ liệu, định dạng             │
 │  - Kiểm tra và xử lý ngoại lai (Outliers)    │
 └──────────────────────┬───────────────────────┘
@@ -170,3 +170,5 @@ Tich_Hop_pTich_DlieuLon/
 └── reports/
     └── final_report.docx / .pdf         # Báo cáo tổng kết môn học
 ```
+
+> Cấu trúc đầy đủ (gồm `src/`, `config/`, `sql/`, `app/`, `docker-compose.yml`) và vai trò của từng file theo từng bước xem tại [`QUY_TRINH_DU_AN/README.md`](./QUY_TRINH_DU_AN/README.md), mục 6.

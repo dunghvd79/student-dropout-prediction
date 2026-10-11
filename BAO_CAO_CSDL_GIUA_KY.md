@@ -66,11 +66,11 @@ Nhóm phân rã dữ liệu thành **2 bảng quan hệ** chuẩn hóa để tr�
 * **Các trường thông tin:**
   * `student_id` (VARCHAR(15), Primary Key): Mã định danh sinh viên.
   * `age` (INT): Tuổi lúc nhập học.
-  * `gender` (VARCHAR(10)): Giới tính (Male/Female).
+  * `gender` (VARCHAR(20)): Giới tính đã chuẩn hóa (Male / Female / Other/Unknown).
   * `first_generation` (BOOLEAN): Thế hệ đầu tiên học đại học (0 = Không, 1 = Có).
   * `household_size` (INT): Số người trong gia đình.
-  * `housing_status` (VARCHAR(20)): Nơi cư trú (On-Campus / Off-Campus).
-  * `family_income` (NUMERIC(12,2)): Thu nhập gia đình hàng năm (USD).
+  * `housing_status` (VARCHAR(20)): Nơi cư trú (On-Campus / Off-Campus / With Parents).
+  * `family_income` (NUMERIC(12,2), cho phép NULL): Thu nhập gia đình hàng năm (USD). Giá trị này không đổi qua các kỳ nên đặt ở bảng tĩnh; NULL với 199 sinh viên không khai báo ở bất kỳ kỳ nào.
 
 * **Ví dụ 5 điểm dữ liệu thực tế (Lấy từ dataset):**
 
@@ -90,17 +90,17 @@ Nhóm phân rã dữ liệu thành **2 bảng quan hệ** chuẩn hóa để tr�
   * `student_id` (VARCHAR(15), Foreign Key tham chiếu `students.student_id`).
   * `scholarship` (BOOLEAN): Nhận học bổng (0 = Không, 1 = Có).
   * `tuition_base` (NUMERIC(10,2)): Học phí cơ sở hàng năm.
-  * `emergency_expense` (NUMERIC(10,2)): Chi phí phát sinh khẩn cấp.
+* **Lưu ý thiết kế:** Bảng này chỉ chứa các thuộc tính tài chính **không đổi** trong suốt quá trình học. `emergency_expense` thay đổi theo từng kỳ (5.083 sinh viên có giá trị khác nhau giữa các kỳ) nên được đưa sang MongoDB, trong object `socio_economic` của collection `academic_semesters`.
 
 * **Ví dụ 5 điểm dữ liệu thực tế:**
 
-| profile_id | student_id | scholarship | tuition_base | emergency_expense |
-| :---: | :--- | :---: | :---: | :---: |
-| **1** | STU_00001 | 0 | 15000.00 | 0.00 |
-| **2** | STU_00002 | 1 | 25000.00 | 0.00 |
-| **3** | STU_00003 | 0 | 15000.00 | 0.00 |
-| **4** | STU_00004 | 0 | 15000.00 | 0.00 |
-| **5** | STU_00005 | 0 | 45000.00 | 0.00 |
+| profile_id | student_id | scholarship | tuition_base |
+| :---: | :--- | :---: | :---: |
+| **1** | STU_00001 | 0 | 15000.00 |
+| **2** | STU_00002 | 1 | 25000.00 |
+| **3** | STU_00003 | 0 | 15000.00 |
+| **4** | STU_00004 | 0 | 15000.00 |
+| **5** | STU_00005 | 0 | 45000.00 |
 
 ---
 
@@ -114,7 +114,7 @@ Nhóm thiết kế một Collection có tên là **`academic_semesters`** nhằm
   * `semester`: Học kỳ thứ mấy (1 - 8).
   * `academic_performance`: Đối tượng lồng nhau gồm `sem_gpa`, `failed_courses`, `course_load`.
   * `engagement`: Đối tượng lồng nhau gồm `attendance` (%), `lms_logins`, `advising_visits`.
-  * `socio_economic`: Đối tượng lồng nhau gồm `work_hours`, `financial_stress`.
+  * `socio_economic`: Đối tượng lồng nhau gồm `work_hours`, `financial_stress`, `emergency_expense`.
   * `outcome`: Đối tượng mục tiêu gồm `target_dropout_next_sem` (0/1), `end_of_semester_status`, `censored`.
 
 * **Ví dụ 5 điểm dữ liệu (5 Document JSON) mô tả chuỗi theo dõi 5 học kỳ của sinh viên `STU_00001`:**
@@ -127,7 +127,7 @@ Nhóm thiết kế một Collection có tên là **`academic_semesters`** nhằm
   "semester": 1,
   "academic_performance": { "sem_gpa": 2.85, "failed_courses": 0, "course_load": 15 },
   "engagement": { "attendance": 85.8, "lms_logins": 67, "advising_visits": 0 },
-  "socio_economic": { "work_hours": 18.4, "financial_stress": 1.7 },
+  "socio_economic": { "work_hours": 18.4, "financial_stress": 1.7, "emergency_expense": 0 },
   "outcome": { "target_dropout_next_sem": 0, "end_of_semester_status": "Enrolled", "censored": 0 }
 }
 
@@ -138,7 +138,7 @@ Nhóm thiết kế một Collection có tên là **`academic_semesters`** nhằm
   "semester": 2,
   "academic_performance": { "sem_gpa": 2.73, "failed_courses": 0, "course_load": 15 },
   "engagement": { "attendance": 81.0, "lms_logins": 89, "advising_visits": 1 },
-  "socio_economic": { "work_hours": 23.1, "financial_stress": 3.1 },
+  "socio_economic": { "work_hours": 23.1, "financial_stress": 3.1, "emergency_expense": 0 },
   "outcome": { "target_dropout_next_sem": 0, "end_of_semester_status": "Enrolled", "censored": 0 }
 }
 
@@ -149,7 +149,7 @@ Nhóm thiết kế một Collection có tên là **`academic_semesters`** nhằm
   "semester": 3,
   "academic_performance": { "sem_gpa": 2.60, "failed_courses": 2, "course_load": 15 },
   "engagement": { "attendance": 78.3, "lms_logins": 60, "advising_visits": 0 },
-  "socio_economic": { "work_hours": 19.1, "financial_stress": 3.0 },
+  "socio_economic": { "work_hours": 19.1, "financial_stress": 3.0, "emergency_expense": 0 },
   "outcome": { "target_dropout_next_sem": 0, "end_of_semester_status": "Enrolled", "censored": 0 }
 }
 
@@ -160,18 +160,18 @@ Nhóm thiết kế một Collection có tên là **`academic_semesters`** nhằm
   "semester": 4,
   "academic_performance": { "sem_gpa": 2.34, "failed_courses": 3, "course_load": 15 },
   "engagement": { "attendance": 77.2, "lms_logins": 59, "advising_visits": 2 },
-  "socio_economic": { "work_hours": 26.5, "financial_stress": 5.1 },
+  "socio_economic": { "work_hours": 26.5, "financial_stress": 5.1, "emergency_expense": 0 },
   "outcome": { "target_dropout_next_sem": 0, "end_of_semester_status": "Enrolled", "censored": 0 }
 }
 
-// Điểm dữ liệu 5: Học kỳ 5 của STU_00001 (Bị cảnh báo nguy cơ cao)
+// Điểm dữ liệu 5: Học kỳ 5 của STU_00001 (GPA giảm còn 1,90; đây là kỳ cuối quan sát được, censored = 1 nghĩa là chưa biết kỳ sau có bỏ học hay không)
 {
   "_id": "67041a01b12f8e1234567805",
   "student_id": "STU_00001",
   "semester": 5,
   "academic_performance": { "sem_gpa": 1.90, "failed_courses": 2, "course_load": 18 },
   "engagement": { "attendance": 79.3, "lms_logins": 53, "advising_visits": 1 },
-  "socio_economic": { "work_hours": 25.4, "financial_stress": 3.6 },
+  "socio_economic": { "work_hours": 25.4, "financial_stress": 3.6, "emergency_expense": 0 },
   "outcome": { "target_dropout_next_sem": 0, "end_of_semester_status": "Enrolled", "censored": 1 }
 }
 ```
@@ -189,13 +189,13 @@ Nhóm thiết kế một Collection có tên là **`academic_semesters`** nhằm
   * $\Rightarrow$ Số mẫu tối thiểu theo lý thuyết: $N_{\text{min}} = 50 \times 20 = \mathbf{1.000\text{ bản ghi}}$.
 
 ### 3.2. Căn cứ theo đặc thù mất cân bằng nhãn (Class Imbalance)
-* **Thực tế bài toán giáo dục:** Tỷ lệ sinh viên bỏ học (`Target_Dropout_Next_Sem = 1`) thường là lớp thiểu số, chiếm khoảng **10% - 15%** tổng số sinh viên.
+* **Thực tế bài toán giáo dục:** Tỷ lệ sinh viên bỏ học (`Target_Dropout_Next_Sem = 1`) thường là lớp thiểu số, chiếm khoảng **10% - 15%** tổng số sinh viên. Trong tập dữ liệu của nhóm, tỷ lệ này thực tế là **8,7%** (6.917 / 79.239 bản ghi).
 * **Yêu cầu tập kiểm thử (Test set):** Khi chia tập dữ liệu (80% Train, 10% Validation, 10% Test), để tập Test có tối thiểu **100 - 150 trường hợp sinh viên bỏ học thật sự** (nhằm đảm bảo độ tin cậy thống kê cho các chỉ số Recall, F1-Score, PR-AUC), số lượng mẫu bỏ học cần có trong toàn bộ dữ liệu phải đạt ít nhất $1.000$ trường hợp.
-* Với tỷ lệ bỏ học 10%, tổng số mẫu tối thiểu cần có là:
-  $$N_{\text{min}} = \frac{1.000}{0.10} = \mathbf{10.000\text{ điểm dữ liệu}}.$$
+* Với tỷ lệ bỏ học thực tế 8,7%, tổng số mẫu tối thiểu cần có là:
+  $$N_{\text{min}} = \frac{1.000}{0.087} \approx \mathbf{11.500\text{ điểm dữ liệu}}.$$
 
 ### 3.3. Căn cứ theo bản chất dữ liệu theo chiều dọc (Longitudinal Trajectory)
-* Không giống như dữ liệu tĩnh (mỗi sinh viên là 1 dòng), dữ liệu theo chiều dọc có mỗi sinh viên lặp lại qua **4 đến 8 học kỳ** (trung bình ~4 học kỳ/sinh viên).
+* Không giống như dữ liệu tĩnh (mỗi sinh viên là 1 dòng), dữ liệu theo chiều dọc có mỗi sinh viên lặp lại qua **1 đến 8 học kỳ** (trung bình ~4 học kỳ/sinh viên; thực tế 79.239 / 20.000 ≈ 3,96).
 * Nếu chỉ có 1.000 bản ghi, thực chất chỉ có khoảng **250 sinh viên độc lập**. Với số lượng cá thể quá ít, khi chia nhóm `GroupKFold` theo `Student_ID`, mô hình sẽ không đủ đa dạng để khái quát hóa hành vi của các nhóm sinh viên khác nhau.
 * Để mô hình học máy và khai phá phân cụm (Clustering/Apriori) hoạt động hiệu quả, cần tối thiểu **1.000 đến 1.500 sinh viên độc lập**, tương đương:
   $$N_{\text{min}} \approx 1.250 \times 4 = \mathbf{5.000\text{ đến }6.000\text{ điểm dữ liệu}}.$$
@@ -206,8 +206,9 @@ Nhóm thiết kế một Collection có tên là **`academic_semesters`** nhằm
 
 | Tiêu chí | Ngưỡng tối thiểu cần thiết | Thực tế tập dữ liệu `academic_survival_longitudinal.csv` | Đánh giá |
 | :--- | :---: | :---: | :---: |
-| **Tổng số điểm dữ liệu (Records)** | $\ge 5.000 - 10.000$ dòng | **79.239 dòng** | **Vượt bậc (~8 lần ngưỡng tối thiểu)** |
-| **Số lượng sinh viên độc lập** | $\ge 1.000 - 1.500$ sinh viên | **gần 20.000 sinh viên** | **Đảm bảo tính đại diện rất cao** |
+| **Tổng số điểm dữ liệu (Records)** | $\ge 5.000 - 11.500$ dòng | **79.239 dòng** | **Vượt bậc (~7 lần ngưỡng tối thiểu)** |
+| **Số ca bỏ học (lớp thiểu số)** | $\ge 1.000$ ca | **6.917 ca (8,7%)** | **Tập Test 10% vẫn có ~690 ca bỏ học (vượt xa mức 100 - 150)** |
+| **Số lượng sinh viên độc lập** | $\ge 1.000 - 1.500$ sinh viên | **20.000 sinh viên** | **Đảm bảo tính đại diện rất cao** |
 | **Độ sâu lịch sử theo dõi** | Tối thiểu 3 - 4 kỳ liên tiếp | **Tối đa 8 học kỳ liên tiếp** | **Lý tưởng cho Feature Engineering chuỗi thời gian** |
 
 **Kết luận:** Tập dữ liệu của nhóm hoàn toàn đáp ứng xuất sắc tiêu chuẩn của một bài toán **Dữ liệu lớn (Big Data - đảm bảo yếu tố Volume và Variety)**, cung cấp đầy đủ kích thước mẫu để triển khai cả 2 nhánh: **Khai phá tri thức (Data Mining)** và **Học máy phân loại nhị phân (Machine Learning Classification)** với độ tin cậy khoa học cao nhất.

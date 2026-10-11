@@ -18,6 +18,13 @@ Dự án tập trung xây dựng **Hệ thống Cảnh báo Sớm (Early Warning
 1. 📄 [**PROJECT_OVERVIEW.md**](./PROJECT_OVERVIEW.md): Tài liệu tổng quan toàn diện về đề tài, từ điển dữ liệu (22 thuộc tính), phương pháp luận và kịch bản bảo vệ trước hội đồng.
 2. 🗄️ [**BAO_CAO_CSDL_GIUA_KY.md**](./BAO_CAO_CSDL_GIUA_KY.md): Báo cáo thiết kế cơ sở dữ liệu (PostgreSQL + MongoDB theo kiến trúc Polyglot Persistence) và phân tích quy mô dữ liệu tối thiểu cho Machine Learning.
 3. ⚙️ [**THIET_KE_PIPELINE.md**](./THIET_KE_PIPELINE.md): Thiết kế Data Pipeline end-to-end (`Raw Data → Ingestion → ETL → Storage → ML → Visualization`).
+4. 🧭 [**QUY_TRINH_DU_AN/**](./QUY_TRINH_DU_AN/README.md): Quy trình thực hiện chi tiết **6 giai đoạn / 18 bước** từ lúc bắt đầu đến khi kết thúc. Mỗi giai đoạn là một thư mục, mỗi bước là một file gồm Nhiệm vụ, Cơ sở lý thuyết, Input, Biến đổi, Output, Tiêu chí hoàn thành và Câu hỏi bảo vệ.
+   * [A – Chuẩn bị](./QUY_TRINH_DU_AN/GIAI_DOAN_A_CHUAN_BI/README.md) (B0 – B1)
+   * [B – Kỹ thuật dữ liệu (ETL)](./QUY_TRINH_DU_AN/GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/README.md) (B2 – B5)
+   * [C – Phân tích & Khai phá](./QUY_TRINH_DU_AN/GIAI_DOAN_C_PHAN_TICH_KHAI_PHA/README.md) (B6 – B8)
+   * [D – Học máy](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_MAY/README.md) (B9 – B13)
+   * [E – Triển khai & Vận hành](./QUY_TRINH_DU_AN/GIAI_DOAN_E_TRIEN_KHAI_VAN_HANH/README.md) (B14 – B16)
+   * [F – Kết thúc](./QUY_TRINH_DU_AN/GIAI_DOAN_F_KET_THUC/README.md) (B17)
 
 ---
 
@@ -46,4 +53,5 @@ Early Warning Dashboard (Power BI / Streamlit)
 
 ## 📊 Tập dữ liệu (Dataset)
 * Tệp dữ liệu gốc: `academic_survival_longitudinal.csv`
-* Quy mô: **79.239 bản ghi** của gần **20.000 sinh viên**, theo dõi qua tối đa 8 học kỳ.
+* Quy mô: **79.239 bản ghi** của **20.000 sinh viên**, theo dõi qua 1 - 8 học kỳ (trung bình ~4 kỳ).
+* Nhãn: `Target_Dropout_Next_Sem`, lớp bỏ học chiếm **8,7%** toàn bộ (10,2% trên tập có nhãn sau khi loại các dòng `Censored = 1`).
