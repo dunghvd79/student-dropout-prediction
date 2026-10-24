@@ -1,5 +1,5 @@
 # TIẾN ĐỘ DỰ ÁN
-**Cập nhật lần cuối:** 2026-10-24 · **Commit mới nhất:** B3 `62a379c`, sau đó tách `src/` thành gói con (xem `git log`)  
+**Cập nhật lần cuối:** 2026-10-24 · **Commit mới nhất:** "Buoc 4: lam sach du lieu" (xem `git log`)  
 **Quy trình chi tiết:** [`QUY_TRINH_DU_AN/`](./QUY_TRINH_DU_AN/README.md)
 
 > Cập nhật file này mỗi khi xong một bước: đổi trạng thái, ghi commit, thêm quyết định / vấn đề mới.
@@ -14,8 +14,8 @@
 | | B1 Dựng môi trường | ✅ Xong |
 | **B – Kỹ thuật dữ liệu (ETL)** | B2 Nạp dữ liệu thô vào MinIO | ✅ Xong |
 | | B3 Kiểm tra chất lượng dữ liệu | ✅ Xong |
-| | B4 Làm sạch dữ liệu | ⏭️ **Làm tiếp theo** |
-| | B5 Nạp kho Polyglot | ⬜ Chưa làm |
+| | B4 Làm sạch dữ liệu | ✅ Xong |
+| | B5 Nạp kho Polyglot | ⏭️ **Làm tiếp theo** |
 | **C – Phân tích & Khai phá** | B6 EDA | ⬜ Chưa làm |
 | | B7 Trích xuất đặc trưng | ⬜ Chưa làm |
 | | B8 Khai phá dữ liệu | ⬜ Chưa làm |
@@ -29,7 +29,7 @@
 | | B16 Giám sát & vận hành | ⬜ Chưa làm |
 | **F – Kết thúc** | B17 Báo cáo & bảo vệ | ⬜ Chưa làm |
 
-**Hoàn thành: 4 / 18 bước** (Giai đoạn A xong; Giai đoạn B: 2/4).
+**Hoàn thành: 5 / 18 bước** (Giai đoạn A xong; Giai đoạn B: 3/4).
 
 ---
 
@@ -57,19 +57,25 @@
 * Phát hiện: tỷ lệ bỏ học theo `Financial_Stress` tính đúng trên tập có nhãn là **5,3% → 50,2%** (số cũ 4,6% → 47% tính trên toàn bộ dữ liệu); đã sửa trong THIET_KE_PIPELINE, B03, B06.
 * File: `src/etl/validate.py`, `src/core/schema.py` (thêm `RANGES`, `STATIC_COLUMNS`, `GENDER_MAP`…), `tests/test_validate.py`, `pytest.ini`; thêm `tabulate` vào requirements.
 
+### B4 – Làm sạch dữ liệu ✅ (commit "Buoc 4: lam sach du lieu")
+* `python -m src.etl.clean` → `data/processed/clean_semesters.parquet` (79.239 × 24) + `s3://processed/academic/batch_id=20261011T085849Z_7df267/clean_semesters.parquet`.
+* Gender đổi cách ghi 4.648 dòng; clip `Attendance` 249; điền `Family_Income` 3.387 (còn 217 dòng / 199 sinh viên → `Income_Missing`); điền `LMS_Logins` 658 (còn 209).
+* 7/7 kiểm tra sau làm sạch đạt; chạy 2 lần cho file Parquet giống hệt (MD5 `deacca08…`); file hỏng bị chặn. 31/31 unit test đạt.
+* File: `src/etl/clean.py`, `tests/test_clean.py`, `reports/cleaning_log.md`.
+
 ---
 
-## 3. Việc tiếp theo: B4 – Làm sạch dữ liệu
+## 3. Việc tiếp theo: B5 – Nạp kho Polyglot
 
-Chi tiết: [`B04_LAM_SACH_DU_LIEU.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B04_LAM_SACH_DU_LIEU.md) · Căn cứ: [`reports/data_quality_report.md`](./reports/data_quality_report.md)
+Chi tiết: [`B05_NAP_KHO_POLYGLOT.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B05_NAP_KHO_POLYGLOT.md)
 
-- [ ] `src/etl/clean.py`: đọc lô `SUCCESS` mới nhất, chạy `validate` trước (dừng nếu ERROR), rồi làm sạch theo đúng thứ tự 10 thao tác ở B04.
-- [ ] `Gender` map theo `GENDER_MAP` (đã có trong `src/core/schema.py`); `Attendance` clip [0, 100]; `Family_Income` ffill + bfill theo sinh viên + cờ `Income_Missing`; `LMS_Logins` chỉ ffill + cờ `LMS_Missing`.
-- [ ] Ghi `clean_semesters.parquet` vào `data/processed/` và MinIO bucket `processed`.
-- [ ] Kiểm tra sau làm sạch: vẫn 79.239 dòng; `Attendance` trong [0, 100]; `Gender` còn 3 nhóm; `Family_Income` còn thiếu đúng 199 sinh viên.
-- [ ] Unit test; chạy 2 lần cho kết quả giống hệt nhau.
+- [ ] `sql/02_core_tables.sql`: bảng `students`, `financial_profiles`, `predictions` (IF NOT EXISTS).
+- [ ] `src/etl/load.py`: đọc `clean_semesters.parquet` → `students` (20.000), `financial_profiles` (20.000) bằng upsert; MongoDB `academic_semesters` (79.239 document lồng nhau) bằng `bulk_write` + unique index `(student_id, semester)`.
+- [ ] Đối soát số lượng; mọi `student_id` trong MongoDB có trong `students`; chạy lại lần 2 số lượng không đổi.
+- [ ] Hàm `load_analytic_table()` trả về dữ liệu giống hệt `clean_semesters.parquet`.
+- [ ] Unit test cho phần chuyển dòng → document.
 
-Sau B4: B5 (`src/etl/load.py`, `sql/02_*.sql`) để hoàn tất Giai đoạn B.
+Sau B5: hoàn tất Giai đoạn B, chuyển sang Giai đoạn C (B6 EDA).
 
 ---
 
@@ -112,7 +118,7 @@ Sau B4: B5 (`src/etl/load.py`, `sql/02_*.sql`) để hoàn tất Giai đoạn B.
 docker compose up -d          # bật lại MinIO, PostgreSQL, MongoDB, MLflow
 .venv\Scripts\activate
 python -m src.ops.check_env       # phải báo "Tất cả đều sẵn sàng"
-python -m pytest              # 21/21 đạt
+python -m pytest              # 31/31 đạt
 ```
 
 * Muốn giải phóng RAM khi không làm: `docker compose stop` (dữ liệu vẫn giữ trong volume).

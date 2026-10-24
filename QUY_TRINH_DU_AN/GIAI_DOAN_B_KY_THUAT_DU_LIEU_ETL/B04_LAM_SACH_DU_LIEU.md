@@ -71,15 +71,30 @@ File thô (79.239 × 22) + bảng quyết định ở [B3](./B03_KIEM_TRA_CHAT_L
 ---
 
 ## 5. Output
-* `clean_semesters.parquet` (79.239 × 24 = 22 cột gốc + `Income_Missing` + `LMS_Missing`), lưu ở `data/processed/` và MinIO bucket `processed`.
-* Log làm sạch: số dòng bị ảnh hưởng ở từng thao tác.
+* `data/processed/clean_semesters.parquet` (79.239 × 24 = 22 cột gốc + `Income_Missing` + `LMS_Missing`, ~1 MB so với 7,4 MB của CSV) và bản sao `s3://processed/academic/batch_id=<batch_id>/clean_semesters.parquet`.
+* [`reports/cleaning_log.md`](../../reports/cleaning_log.md): số dòng bị ảnh hưởng ở từng thao tác + kết quả kiểm tra sau làm sạch + hash nội dung.
+
+**Kết quả thực tế** (lô `20261011T085849Z_7df267`):
+
+| Thao tác | Số dòng |
+|---|---:|
+| Khử trùng lặp | 0 |
+| Chuẩn hóa `Gender` (đổi cách ghi) | 4.648 |
+| Clip `Attendance` về [0, 100] | 249 |
+| Điền `Family_Income` từ kỳ khác của cùng sinh viên | 3.387 |
+| `Family_Income` vẫn thiếu → `Income_Missing = 1` (199 sinh viên) | 217 |
+| Điền `LMS_Logins` bằng kỳ trước | 658 |
+| `LMS_Logins` vẫn thiếu (không có kỳ trước) | 209 |
 
 ## 6. Công cụ / File thực hiện
-`src/etl/clean.py` (`pandas`, `pyarrow`).
+* `src/etl/clean.py`: chạy `python -m src.etl.clean [--file PATH]`. Dữ liệu phải **qua data contract của B3 trước** (có ERROR thì dừng, không ghi output); kiểm tra sau làm sạch không đạt cũng không ghi output.
+* Kiểu dữ liệu được ép theo `src/core/schema.py`: số nguyên → `int64`, số thực → `float64`, `LMS_Logins` → `Int64` (nullable, vì còn thiếu ở kỳ đầu), chuỗi → `string`, cờ → `int8`.
+* `tests/test_clean.py`: 10 unit test (map Gender, clip, ffill/bfill trong cùng sinh viên, không mượn dữ liệu của sinh viên khác, LMS chỉ ffill, khử trùng giữ bản cuối, tính xác định…).
 
-## 7. Tiêu chí hoàn thành
-- [ ] Mọi kiểm tra ở mục 4.10 đều đạt.
-- [ ] Chạy lại hai lần cho kết quả giống hệt nhau (so sánh hash của file Parquet).
+## 7. Tiêu chí hoàn thành (đã kiểm tra 2026-10-24)
+- [x] Mọi kiểm tra ở mục 4.10 đều đạt: 79.239 dòng; `Attendance` ∈ [0, 100]; `Gender` còn 3 nhóm; 0 vi phạm cột tĩnh; đủ 24 cột.
+- [x] Chạy lại hai lần cho kết quả giống hệt nhau: MD5 file Parquet `deacca08f68af0e38baec98cac03f001` cả hai lần; hash nội dung `d0f62efcf08dc468`.
+- [x] File cố tình làm hỏng → dừng ở data contract, mã thoát 1, không ghi output.
 
 ---
 
