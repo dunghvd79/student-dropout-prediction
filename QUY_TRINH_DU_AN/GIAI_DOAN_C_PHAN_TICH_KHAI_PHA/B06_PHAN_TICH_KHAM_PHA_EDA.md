@@ -60,7 +60,7 @@ Bảng ghép từ `load_analytic_table()` (79.239 dòng). Các tỷ lệ bỏ h�
    * `First_Generation`: 13,6% (có) so với 8,4% (không).
    * `Scholarship`: 7,3% (có) so với 11,2% (không).
    * `Housing_Status`: With Parents 8,8%; On-Campus 10,7%; Off-Campus 10,8%.
-   * `Financial_Stress`: tăng đều từ 4,6% (mức 1) lên 47% (mức ≥ 10).
+   * `Financial_Stress`: tăng đều từ 5,3% (mức 1) lên 50,2% (mức ≥ 10).
 5. **Phân phối** `Sem_GPA`, `Attendance`, `Work_Hours`, `Failed_Courses`, `LMS_Logins` tách theo nhãn (histogram, boxplot).
 6. **Ma trận tương quan** Spearman giữa các biến số và nhãn; phát hiện cặp biến tương quan rất cao (đa cộng tuyến).
 7. **Quỹ đạo theo thời gian:** trung bình `Sem_GPA`, `Attendance`, `Financial_Stress` theo học kỳ, tách nhóm sắp bỏ học / ở lại.

@@ -1,5 +1,5 @@
 # TIẾN ĐỘ DỰ ÁN
-**Cập nhật lần cuối:** 2026-10-11 · **Commit mới nhất:** `6b10ec6`  
+**Cập nhật lần cuối:** 2026-10-24 · **Commit mới nhất:** `6370c60` (B3 chưa commit)  
 **Quy trình chi tiết:** [`QUY_TRINH_DU_AN/`](./QUY_TRINH_DU_AN/README.md)
 
 > Cập nhật file này mỗi khi xong một bước: đổi trạng thái, ghi commit, thêm quyết định / vấn đề mới.
@@ -13,8 +13,8 @@
 | **A – Chuẩn bị** | B0 Xác định bài toán | ✅ Xong |
 | | B1 Dựng môi trường | ✅ Xong |
 | **B – Kỹ thuật dữ liệu (ETL)** | B2 Nạp dữ liệu thô vào MinIO | ✅ Xong |
-| | B3 Kiểm tra chất lượng dữ liệu | ⏭️ **Làm tiếp theo** |
-| | B4 Làm sạch dữ liệu | ⬜ Chưa làm |
+| | B3 Kiểm tra chất lượng dữ liệu | ✅ Xong |
+| | B4 Làm sạch dữ liệu | ⏭️ **Làm tiếp theo** |
 | | B5 Nạp kho Polyglot | ⬜ Chưa làm |
 | **C – Phân tích & Khai phá** | B6 EDA | ⬜ Chưa làm |
 | | B7 Trích xuất đặc trưng | ⬜ Chưa làm |
@@ -29,7 +29,7 @@
 | | B16 Giám sát & vận hành | ⬜ Chưa làm |
 | **F – Kết thúc** | B17 Báo cáo & bảo vệ | ⬜ Chưa làm |
 
-**Hoàn thành: 3 / 18 bước** (Giai đoạn A xong; Giai đoạn B: 1/4).
+**Hoàn thành: 4 / 18 bước** (Giai đoạn A xong; Giai đoạn B: 2/4).
 
 ---
 
@@ -50,19 +50,26 @@
 * Đã kiểm tra: chạy lại → `SKIPPED`; file hỏng → `FAILED`; 8/8 unit test đạt.
 * File: `src/ingest.py`, `src/schema.py`, `src/db.py`, `sql/01_ingestion_log.sql`, `tests/test_ingest.py`.
 
+### B3 – Kiểm tra chất lượng dữ liệu ✅ (chưa commit)
+* `python -m src.validate` trên lô `20261011T085849Z_7df267`: data contract **ĐẠT** (4 OK, 5 WARN, 0 ERROR).
+* Báo cáo [`reports/data_quality_report.md`](./reports/data_quality_report.md) + 4 biểu đồ `reports/figures/dq_*.png`.
+* File cố tình làm hỏng → 5 ERROR, mã thoát 1. Tổng cộng 21/21 unit test đạt.
+* Phát hiện: tỷ lệ bỏ học theo `Financial_Stress` tính đúng trên tập có nhãn là **5,3% → 50,2%** (số cũ 4,6% → 47% tính trên toàn bộ dữ liệu); đã sửa trong THIET_KE_PIPELINE, B03, B06.
+* File: `src/validate.py`, `src/schema.py` (thêm `RANGES`, `STATIC_COLUMNS`, `GENDER_MAP`…), `tests/test_validate.py`, `pytest.ini`; thêm `tabulate` vào requirements.
+
 ---
 
-## 3. Việc tiếp theo: B3 – Kiểm tra chất lượng dữ liệu
+## 3. Việc tiếp theo: B4 – Làm sạch dữ liệu
 
-Chi tiết: [`B03_KIEM_TRA_CHAT_LUONG_DU_LIEU.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B03_KIEM_TRA_CHAT_LUONG_DU_LIEU.md)
+Chi tiết: [`B04_LAM_SACH_DU_LIEU.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B04_LAM_SACH_DU_LIEU.md) · Căn cứ: [`reports/data_quality_report.md`](./reports/data_quality_report.md)
 
-- [ ] `src/validate.py`: đọc lô `SUCCESS` mới nhất từ MinIO, chạy 7 nhóm kiểm tra (thiếu, miền giá trị, phân loại, trùng khóa, tính liên tục học kỳ, cột tĩnh / biến động, logic nhãn).
-- [ ] Xuất `reports/data_quality_report.md` + biểu đồ phân phối các cột lỗi.
-- [ ] Data contract tự động: báo lỗi khi đưa vào một file cố tình làm hỏng.
-- [ ] Unit test cho các hàm kiểm tra.
-- [ ] Số liệu mong đợi (đã đo trước, dùng để đối chiếu): `Family_Income` thiếu 3.604; `LMS_Logins` thiếu 867; `Attendance` ngoài [0,100] 249 dòng; `Gender` 8 cách ghi; `Financial_Stress` > 5: 7.348 dòng; 0 trùng khóa; `Censored = 1`: 11.115 dòng.
+- [ ] `src/clean.py`: đọc lô `SUCCESS` mới nhất, chạy `validate` trước (dừng nếu ERROR), rồi làm sạch theo đúng thứ tự 10 thao tác ở B04.
+- [ ] `Gender` map theo `GENDER_MAP` (đã có trong `src/schema.py`); `Attendance` clip [0, 100]; `Family_Income` ffill + bfill theo sinh viên + cờ `Income_Missing`; `LMS_Logins` chỉ ffill + cờ `LMS_Missing`.
+- [ ] Ghi `clean_semesters.parquet` vào `data/processed/` và MinIO bucket `processed`.
+- [ ] Kiểm tra sau làm sạch: vẫn 79.239 dòng; `Attendance` trong [0, 100]; `Gender` còn 3 nhóm; `Family_Income` còn thiếu đúng 199 sinh viên.
+- [ ] Unit test; chạy 2 lần cho kết quả giống hệt nhau.
 
-Sau B3: B4 (`src/clean.py`) → B5 (`src/load.py`, `sql/02_*.sql`) để hoàn tất Giai đoạn B.
+Sau B4: B5 (`src/load.py`, `sql/02_*.sql`) để hoàn tất Giai đoạn B.
 
 ---
 
@@ -88,7 +95,7 @@ Sau B3: B4 (`src/clean.py`) → B5 (`src/load.py`, `sql/02_*.sql`) để hoàn t
 | # | Quyết định | Lý do | Ghi ở |
 |:---:|---|---|---|
 | 1 | Loại 11.115 dòng `Censored = 1` khỏi Train/Test, dùng làm tập chấm điểm | Nhãn 0 của các dòng này chưa xác nhận | THIET_KE_PIPELINE, B03, B09 |
-| 2 | Không chặn `Financial_Stress` về 5 | Tỷ lệ bỏ học tăng đều theo chỉ số (4,6% → 47%), giá trị cao là tín hiệu thật | THIET_KE_PIPELINE, B03 |
+| 2 | Không chặn `Financial_Stress` về 5 | Tỷ lệ bỏ học tăng đều theo chỉ số (5,3% → 50,2% trên tập có nhãn), giá trị cao là tín hiệu thật | THIET_KE_PIPELINE, B03 |
 | 3 | `Family_Income` điền theo sinh viên trước (ffill + bfill), sau đó mới dùng trung vị | Cột không đổi theo kỳ; khôi phục được 94% số dòng thiếu | THIET_KE_PIPELINE, B04 |
 | 4 | `emergency_expense` chuyển sang MongoDB | Thay đổi theo kỳ, không phải thuộc tính tĩnh | BAO_CAO_CSDL_GIUA_KY, B05 |
 | 5 | Dùng `bitnamilegacy/minio` thay `minio/minio` | Image chính thức đã bị gỡ khỏi Docker Hub và quay.io | B01, docker-compose |
@@ -105,7 +112,7 @@ Sau B3: B4 (`src/clean.py`) → B5 (`src/load.py`, `sql/02_*.sql`) để hoàn t
 docker compose up -d          # bật lại MinIO, PostgreSQL, MongoDB, MLflow
 .venv\Scripts\activate
 python -m src.check_env       # phải báo "Tất cả đều sẵn sàng"
-python -m pytest tests        # 8/8 đạt
+python -m pytest              # 21/21 đạt
 ```
 
 * Muốn giải phóng RAM khi không làm: `docker compose stop` (dữ liệu vẫn giữ trong volume).

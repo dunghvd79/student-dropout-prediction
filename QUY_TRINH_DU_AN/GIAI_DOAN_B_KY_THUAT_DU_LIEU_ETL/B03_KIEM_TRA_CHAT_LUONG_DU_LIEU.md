@@ -44,7 +44,7 @@ Cách điền khuyết đúng phụ thuộc vào **vì sao** dữ liệu bị th
 | **Lỗi dữ liệu** (không thể xảy ra) | `Attendance` = 105% | Sửa / chặn (clip) |
 | **Giá trị cực đoan hợp lệ** (hiếm nhưng có thật) | `Family_Income` = 488.000; `Financial_Stress` = 18,6 | **Giữ lại**; biến đổi log / winsorize nếu mô hình nhạy cảm |
 
-Xóa nhầm giá trị cực đoan hợp lệ sẽ **làm mất tín hiệu**. Ví dụ: tỷ lệ bỏ học ở nhóm `Financial_Stress` ≥ 10 là 47%, so với 4,6% ở mức 1.
+Xóa nhầm giá trị cực đoan hợp lệ sẽ **làm mất tín hiệu**. Ví dụ: tỷ lệ bỏ học ở nhóm `Financial_Stress` ≥ 10 là 50,2%, so với 5,3% ở mức 1.
 
 ### 2.4. Rò rỉ nhãn (Target Leakage)
 Rò rỉ xảy ra khi một đặc trưng **chứa thông tin về nhãn mà tại thời điểm dự đoán chưa thể biết**. Mô hình sẽ đạt điểm "hoàn hảo" khi kiểm thử nhưng vô dụng khi triển khai.
@@ -92,15 +92,23 @@ File thô từ MinIO (79.239 × 22).
 ---
 
 ## 5. Output
-* `reports/data_quality_report.md`: bảng trên kèm biểu đồ phân phối các cột lỗi.
-* Bộ quy tắc kiểm tra tự động (data contract) trong `src/validate.py`.
+* [`reports/data_quality_report.md`](../../reports/data_quality_report.md): tóm tắt 9 kiểm tra, bảng quyết định xử lý, bảng chi tiết và 4 biểu đồ (`reports/figures/dq_*.png`).
+* Data contract tự động trong `src/validate.py`, mỗi kiểm tra trả về một trong ba mức:
+  * **OK:** sạch.
+  * **WARN:** vấn đề đã biết, đã có cách xử lý ở B4 / B9 / B10; không chặn pipeline.
+  * **ERROR:** vi phạm contract, chặn pipeline (mã thoát 1). Gồm: thiếu > 10% ở một cột, > 1% giá trị ngoài miền, giá trị phân loại lạ, học kỳ đứt quãng, cột tĩnh bị đổi trong cùng sinh viên, logic nhãn sai.
 
 ## 6. Công cụ / File thực hiện
-`src/validate.py`, notebook `01_data_cleaning_eda.ipynb` (phần 1) – `pandas`; tùy chọn `ydata-profiling`, `great_expectations`.
+* `src/validate.py`: chạy `python -m src.validate` (mặc định đọc lô `SUCCESS` mới nhất trong MinIO), hoặc `--file PATH` để kiểm tra một file trên máy, `--no-report` để chỉ in kết quả.
+* `src/schema.py`: miền giá trị (`RANGES`), cột tĩnh (`STATIC_COLUMNS`), bảng ánh xạ `GENDER_MAP` (B4 dùng lại), tập giá trị hợp lệ của `Housing_Status` và `End_of_Semester_Status`.
+* `tests/test_validate.py`: 13 unit test.
 
-## 7. Tiêu chí hoàn thành
-- [ ] Mọi cột đều có kết luận "sạch" hoặc "có vấn đề + cách xử lý".
-- [ ] `validate.py` chạy tự động và trả về lỗi khi đưa vào một file cố tình làm hỏng.
+## 7. Tiêu chí hoàn thành (đã kiểm tra 2026-10-24)
+- [x] Mọi cột đều có kết luận "sạch" hoặc "có vấn đề + cách xử lý" (xem báo cáo). Lô `20261011T085849Z_7df267`: **ĐẠT** (4 OK, 5 WARN, 0 ERROR).
+- [x] File cố tình làm hỏng (Gender lạ, `Tuition_Base` đổi giữa các kỳ, học kỳ đứt quãng, `Work_Hours` thiếu 11%) → 5 ERROR, mã thoát 1.
+- [x] Số liệu khớp phép đo trước: thiếu 3.604 / 867; `Attendance` 249 dòng; `Gender` 8 cách ghi; `Financial_Stress` > 5: 7.348 dòng; 0 trùng khóa; 11.115 dòng `Censored = 1`; tập có nhãn 68.124 dòng (10,2%).
+
+> **Ghi chú:** tỷ lệ bỏ học theo `Financial_Stress` được tính trên **tập có nhãn** (`Censored = 0`): 5,3% ở mức 1 → 50,2% ở mức ≥ 10. Số cũ (4,6% → 47%) tính trên toàn bộ dữ liệu, gồm cả các dòng có nhãn chưa xác nhận, nên đã được thay.
 
 ---
 
@@ -109,4 +117,4 @@ File thô từ MinIO (79.239 × 22).
 **Đáp:** Sẽ mất 4,5% dữ liệu và có thể gây lệch nếu việc thiếu không ngẫu nhiên (MNAR). Hơn nữa, 94% số dòng thiếu lấy lại được từ kỳ khác của chính sinh viên đó.
 
 **Hỏi:** `Financial_Stress` lên tới 18,6 trong khi mô tả là thang 1 – 5, vì sao không chặn về 5?  
-**Đáp:** Tỷ lệ bỏ học tăng đều theo chỉ số này (4,6% → 47%), nên giá trị cao là tín hiệu thật. Chặn về 5 sẽ xóa mất sự khác biệt giữa nhóm rủi ro vừa và rủi ro rất cao.
+**Đáp:** Tỷ lệ bỏ học tăng đều theo chỉ số này (5,3% → 50,2% trên tập có nhãn), nên giá trị cao là tín hiệu thật. Chặn về 5 sẽ xóa mất sự khác biệt giữa nhóm rủi ro vừa và rủi ro rất cao.
