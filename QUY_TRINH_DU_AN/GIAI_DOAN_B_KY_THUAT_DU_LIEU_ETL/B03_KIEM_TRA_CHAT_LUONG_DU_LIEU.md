@@ -93,14 +93,14 @@ File thô từ MinIO (79.239 × 22).
 
 ## 5. Output
 * [`reports/data_quality_report.md`](../../reports/data_quality_report.md): tóm tắt 9 kiểm tra, bảng quyết định xử lý, bảng chi tiết và 4 biểu đồ (`reports/figures/dq_*.png`).
-* Data contract tự động trong `src/validate.py`, mỗi kiểm tra trả về một trong ba mức:
+* Data contract tự động trong `src/etl/validate.py`, mỗi kiểm tra trả về một trong ba mức:
   * **OK:** sạch.
   * **WARN:** vấn đề đã biết, đã có cách xử lý ở B4 / B9 / B10; không chặn pipeline.
   * **ERROR:** vi phạm contract, chặn pipeline (mã thoát 1). Gồm: thiếu > 10% ở một cột, > 1% giá trị ngoài miền, giá trị phân loại lạ, học kỳ đứt quãng, cột tĩnh bị đổi trong cùng sinh viên, logic nhãn sai.
 
 ## 6. Công cụ / File thực hiện
-* `src/validate.py`: chạy `python -m src.validate` (mặc định đọc lô `SUCCESS` mới nhất trong MinIO), hoặc `--file PATH` để kiểm tra một file trên máy, `--no-report` để chỉ in kết quả.
-* `src/schema.py`: miền giá trị (`RANGES`), cột tĩnh (`STATIC_COLUMNS`), bảng ánh xạ `GENDER_MAP` (B4 dùng lại), tập giá trị hợp lệ của `Housing_Status` và `End_of_Semester_Status`.
+* `src/etl/validate.py`: chạy `python -m src.etl.validate` (mặc định đọc lô `SUCCESS` mới nhất trong MinIO), hoặc `--file PATH` để kiểm tra một file trên máy, `--no-report` để chỉ in kết quả.
+* `src/core/schema.py`: miền giá trị (`RANGES`), cột tĩnh (`STATIC_COLUMNS`), bảng ánh xạ `GENDER_MAP` (B4 dùng lại), tập giá trị hợp lệ của `Housing_Status` và `End_of_Semester_Status`.
 * `tests/test_validate.py`: 13 unit test.
 
 ## 7. Tiêu chí hoàn thành (đã kiểm tra 2026-10-24)

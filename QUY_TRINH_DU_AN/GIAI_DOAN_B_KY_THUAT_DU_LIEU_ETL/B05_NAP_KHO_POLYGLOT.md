@@ -113,10 +113,10 @@ Tách dữ liệu sạch thành **phần tĩnh** (PostgreSQL) và **phần biế
 ## 5. Output
 * PostgreSQL: `students` (20.000), `financial_profiles` (20.000), `predictions` (rỗng), `ingestion_log`.
 * MongoDB: `academic_semesters` (79.239 document).
-* Hàm `load_analytic_table()` trong `src/load.py`.
+* Hàm `load_analytic_table()` trong `src/etl/load.py`.
 
 ## 6. Công cụ / File thực hiện
-`src/load.py`, `sql/schema.sql` (`sqlalchemy`, `psycopg2`, `pymongo`).
+`src/etl/load.py`, `sql/schema.sql` (`sqlalchemy`, `psycopg2`, `pymongo`).
 
 ## 7. Tiêu chí hoàn thành
 - [ ] Số lượng khớp 20.000 / 20.000 / 79.239.

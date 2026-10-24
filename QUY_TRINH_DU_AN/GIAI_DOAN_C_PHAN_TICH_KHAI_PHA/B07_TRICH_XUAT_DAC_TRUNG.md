@@ -81,7 +81,7 @@ Kỳ 1 không có kỳ trước, nên Lag/Delta không xác định. Có ba lự
 * `config/feature_spec.json`: danh sách đặc trưng, để B11 (huấn luyện) và B14 (dự đoán) dùng **cùng một** danh sách.
 
 ## 6. Công cụ / File thực hiện
-`src/features.py`, notebook `02_feature_engineering.ipynb` (`pandas`, `numpy`).
+`src/analysis/features.py`, notebook `02_feature_engineering.ipynb` (`pandas`, `numpy`).
 
 ## 7. Tiêu chí hoàn thành
 - [ ] Unit test trên `STU_00001`: `Delta_GPA` kỳ 2 = 2,73 − 2,85 = **−0,12**; `Cum_Failed_Courses` kỳ 4 = 0 + 0 + 2 + 3 = **5**.

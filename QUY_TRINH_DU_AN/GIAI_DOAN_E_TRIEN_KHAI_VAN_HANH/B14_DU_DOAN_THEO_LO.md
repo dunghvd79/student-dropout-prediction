@@ -24,7 +24,7 @@ Chấm điểm rủi ro cho **sinh viên đang theo học** và lưu kết quả
 ### 2.2. Training–serving skew
 * Là hiện tượng **dữ liệu lúc dự đoán được xử lý khác với lúc huấn luyện** (khác công thức đặc trưng, khác thứ tự cột, khác cách điền khuyết). Mô hình vẫn chạy nhưng **kết quả sai âm thầm**.
 * **Cách phòng tránh trong dự án:**
-  1. Dùng **cùng** `src/features.py` cho huấn luyện và dự đoán.
+  1. Dùng **cùng** `src/analysis/features.py` cho huấn luyện và dự đoán.
   2. Dùng **cùng** `feature_spec.json` (danh sách và thứ tự cột) và kiểm tra schema trước khi dự đoán.
   3. Tiền xử lý nằm **bên trong** Pipeline đã lưu (B10), không viết lại ở bước dự đoán.
 
@@ -70,7 +70,7 @@ Chấm điểm rủi ro cho **sinh viên đang theo học** và lưu kết quả
 * Log lần chạy: thời gian, số dòng, phân bố mức rủi ro (ghi vào `pipeline_runs` ở B16).
 
 ## 6. Công cụ / File thực hiện
-`src/predict.py` (`mlflow`, `pandas`, `sqlalchemy`, `shap`).
+`src/ml/predict.py` (`mlflow`, `pandas`, `sqlalchemy`, `shap`).
 
 ## 7. Tiêu chí hoàn thành
 - [ ] Mọi sinh viên trong scoring set có điểm rủi ro và lý do.

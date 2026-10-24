@@ -1,5 +1,5 @@
 # BÁO CÁO CHẤT LƯỢNG DỮ LIỆU
-*Sinh tự động bởi `python -m src.validate` lúc 2026-10-24 08:44. Xem phương pháp tại `QUY_TRINH_DU_AN/GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B03_KIEM_TRA_CHAT_LUONG_DU_LIEU.md`.*
+*Sinh tự động bởi `python -m src.etl.validate` lúc 2026-10-24 08:44. Xem phương pháp tại `QUY_TRINH_DU_AN/GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B03_KIEM_TRA_CHAT_LUONG_DU_LIEU.md`.*
 
 * **Nguồn:** `s3://raw/academic/ingest_date=2026-10-11/batch_id=20261011T085849Z_7df267/academic_survival_longitudinal.csv`
 * **batch_id:** `20261011T085849Z_7df267`
@@ -10,7 +10,7 @@
 
 | Kiểm tra | Trạng thái | Kết quả |
 |---|:---:|---|
-| Schema | ✅ OK | 79,239 dòng × 22 cột, đúng 22 cột theo src/schema.py |
+| Schema | ✅ OK | 79,239 dòng × 22 cột, đúng 22 cột theo src/core/schema.py |
 | Giá trị thiếu (Completeness) | ⚠️ WARN | Family_Income: 3,604 (4.55%), LMS_Logins: 867 (1.09%) |
 | Miền giá trị (Validity) | ⚠️ WARN | Attendance: 249 dòng (0.31%) |
 | Thang đo Financial_Stress | ⚠️ WARN | 7,348 dòng > 5 (trung vị 2.1, P99 9.0, max 18.6). Tỷ lệ bỏ học tăng từ 5.3% (mức 1) lên 50.2% (mức ≥10), nên giá trị cao là tín hiệu thật: GIỮ NGUYÊN, không chặn về 5. |

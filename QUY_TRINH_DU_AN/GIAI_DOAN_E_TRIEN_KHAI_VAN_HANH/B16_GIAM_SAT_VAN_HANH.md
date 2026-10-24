@@ -64,7 +64,7 @@ Toàn bộ script `src/*.py`, bảng `predictions`, MLflow, dữ liệu kỳ m�
 ---
 
 ## 4. Biến đổi
-1. **Điều phối:** `src/run_pipeline.py` gọi tuần tự `ingest → validate → clean → load → features → predict → monitor`; dừng và ghi lỗi nếu một bước thất bại.
+1. **Điều phối:** `src/ops/run_pipeline.py` gọi tuần tự `ingest → validate → clean → load → features → predict → monitor`; dừng và ghi lỗi nếu một bước thất bại.
 2. **Lập lịch:** Windows Task Scheduler / cron chạy **hàng tuần** và **sau mỗi đợt thi**. Khi mở rộng có thể chuyển sang Airflow DAG.
 3. **Giám sát 5 metrics** (ghi vào bảng `pipeline_runs`):
 
@@ -87,7 +87,7 @@ Toàn bộ script `src/*.py`, bảng `predictions`, MLflow, dữ liệu kỳ m�
 * Các bản sao lưu; phiên bản mô hình mới (nếu có).
 
 ## 6. Công cụ / File thực hiện
-`src/run_pipeline.py`, `src/monitor.py`, `backup.ps1` / `backup.sh`, Windows Task Scheduler / cron (Airflow khi mở rộng).
+`src/ops/run_pipeline.py`, `src/ops/monitor.py`, `backup.ps1` / `backup.sh`, Windows Task Scheduler / cron (Airflow khi mở rộng).
 
 ## 7. Tiêu chí hoàn thành
 - [ ] Pipeline chạy tự động thành công ít nhất 1 lần theo lịch.

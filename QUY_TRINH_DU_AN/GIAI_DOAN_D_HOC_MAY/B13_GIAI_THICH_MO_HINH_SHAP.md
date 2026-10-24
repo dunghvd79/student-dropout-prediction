@@ -69,7 +69,7 @@ Mô hình Production (cây), `X_test` (hoặc mẫu 2.000 – 5.000 dòng).
 * Hàm `top_reasons()` (dùng ở B14 và Streamlit) + bảng ánh xạ tên đặc trưng sang mô tả tiếng Việt.
 
 ## 6. Công cụ / File thực hiện
-`src/explain.py`, notebook `04_machine_learning_models.ipynb` (`shap`).
+`src/ml/explain.py`, notebook `04_machine_learning_models.ipynb` (`shap`).
 
 ## 7. Tiêu chí hoàn thành
 - [ ] Top đặc trưng quan trọng có ý nghĩa nghiệp vụ và nhất quán với EDA.

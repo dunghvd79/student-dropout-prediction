@@ -75,7 +75,7 @@ File thô (79.239 × 22) + bảng quyết định ở [B3](./B03_KIEM_TRA_CHAT_L
 * Log làm sạch: số dòng bị ảnh hưởng ở từng thao tác.
 
 ## 6. Công cụ / File thực hiện
-`src/clean.py` (`pandas`, `pyarrow`).
+`src/etl/clean.py` (`pandas`, `pyarrow`).
 
 ## 7. Tiêu chí hoàn thành
 - [ ] Mọi kiểm tra ở mục 4.10 đều đạt.

@@ -90,7 +90,7 @@ Nhờ MLflow, mọi kết quả đều **truy vết được**: mô hình X đư
 * Các lần chạy trong MLflow experiment `dropout_ews`.
 
 ## 6. Công cụ / File thực hiện
-`src/train.py`, notebook `04_machine_learning_models.ipynb` (`scikit-learn`, `xgboost`, `lightgbm`, `optuna`, `mlflow`).
+`src/ml/train.py`, notebook `04_machine_learning_models.ipynb` (`scikit-learn`, `xgboost`, `lightgbm`, `optuna`, `mlflow`).
 
 ## 7. Tiêu chí hoàn thành
 - [ ] Mô hình tốt nhất vượt baseline LogReg rõ rệt về PR-AUC.

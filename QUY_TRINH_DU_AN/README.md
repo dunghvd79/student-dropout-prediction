@@ -170,16 +170,12 @@ Tich_Hop_pTich_DlieuLon/
 ├── sql/schema.sql                         # B5
 │
 ├── src/
-│   ├── ingest.py                          # B2
-│   ├── validate.py                        # B3
-│   ├── clean.py                           # B4
-│   ├── load.py                            # B5 (+ load_analytic_table)
-│   ├── features.py                        # B7
-│   ├── train.py                           # B9 – B12
-│   ├── explain.py                         # B13
-│   ├── predict.py                         # B14
-│   ├── monitor.py                         # B16
-│   └── run_pipeline.py                    # B16
+│   ├── core/          config.py, db.py, schema.py    # dùng chung
+│   ├── etl/           ingest.py (B2), validate.py (B3), clean.py (B4), load.py (B5)
+│   ├── analysis/      features.py (B7), mining.py (B8)
+│   ├── ml/            train.py (B9 – B12), explain.py (B13), predict.py (B14)
+│   └── ops/           check_env.py (B1), monitor.py, run_pipeline.py (B16)
+├── tests/                                 # pytest
 │
 ├── notebooks/
 │   ├── 01_data_cleaning_eda.ipynb         # B3, B6

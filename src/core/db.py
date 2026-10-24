@@ -5,7 +5,7 @@ from functools import lru_cache
 from minio import Minio
 from sqlalchemy import Engine, create_engine
 
-from src import config
+from src.core import config
 
 
 @lru_cache

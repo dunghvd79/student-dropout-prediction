@@ -1,6 +1,6 @@
 """Bước 2 – Nạp dữ liệu thô vào Raw Data Lake (MinIO) và ghi ingestion_log.
 
-Chạy:  python -m src.ingest [--file PATH] [--date YYYY-MM-DD]
+Chạy:  python -m src.etl.ingest [--file PATH] [--date YYYY-MM-DD]
 
 Quy trình:
   1. Tính MD5; nếu nội dung đã được nạp thành công trước đó thì bỏ qua (idempotent).
@@ -22,8 +22,8 @@ from pathlib import Path
 import pandas as pd
 from sqlalchemy import text
 
-from src import config, db
-from src.schema import COLUMNS, NUMERIC_KINDS
+from src.core import config, db
+from src.core.schema import COLUMNS, NUMERIC_KINDS
 
 
 def md5_of_file(path: Path) -> str:

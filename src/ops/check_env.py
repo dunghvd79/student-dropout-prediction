@@ -1,13 +1,13 @@
 """Kiểm tra môi trường (tiêu chí hoàn thành Bước 1).
 
-Chạy:  python -m src.check_env
+Chạy:  python -m src.ops.check_env
 Kiểm tra: thư viện Python, file dữ liệu gốc, MinIO (bucket), PostgreSQL (2 database), MongoDB, MLflow.
 """
 
 import importlib
 import sys
 
-from src import config
+from src.core import config
 
 LIBS = [
     "numpy", "pandas", "pyarrow", "sqlalchemy", "psycopg2", "pymongo", "minio",

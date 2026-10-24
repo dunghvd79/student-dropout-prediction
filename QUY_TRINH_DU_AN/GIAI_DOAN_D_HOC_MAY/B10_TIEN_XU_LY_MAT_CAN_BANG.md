@@ -75,7 +75,7 @@ Viết hàm `build_pipeline(model_name, imbalance='weight')` trả về Pipeline
 Hàm `build_pipeline()` cho từng loại mô hình.
 
 ## 6. Công cụ / File thực hiện
-`src/train.py` (`scikit-learn`, `imbalanced-learn`).
+`src/ml/train.py` (`scikit-learn`, `imbalanced-learn`).
 
 ## 7. Tiêu chí hoàn thành
 - [ ] Pipeline `fit` / `predict_proba` được trên dữ liệu có `NaN`.

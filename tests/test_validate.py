@@ -3,8 +3,8 @@
 import pandas as pd
 import pytest
 
-from src.schema import COLUMNS
-from src.validate import (
+from src.core.schema import COLUMNS
+from src.etl.validate import (
     check_categories, check_label_logic, check_missing, check_ranges,
     check_semester_continuity, check_static_columns, validate,
 )

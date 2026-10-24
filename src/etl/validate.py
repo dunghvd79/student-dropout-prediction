@@ -1,6 +1,6 @@
 """Bước 3 – Kiểm tra chất lượng dữ liệu (Data Profiling & Validation).
 
-Chạy:  python -m src.validate [--file PATH] [--report PATH]
+Chạy:  python -m src.etl.validate [--file PATH] [--report PATH]
   Mặc định đọc lô SUCCESS mới nhất trong ingestion_log từ MinIO (bucket raw).
   --file dùng một file CSV trên máy (để thử data contract với file hỏng).
 
@@ -24,9 +24,9 @@ import matplotlib.pyplot as plt  # noqa: E402
 import pandas as pd  # noqa: E402
 from sqlalchemy import text  # noqa: E402
 
-from src import config, db  # noqa: E402
-from src.ingest import check_schema  # noqa: E402
-from src.schema import (  # noqa: E402
+from src.core import config, db  # noqa: E402
+from src.etl.ingest import check_schema  # noqa: E402
+from src.core.schema import (  # noqa: E402
     COLUMNS, GENDER_MAP, HOUSING_VALUES, NUMERIC_KINDS, RANGES, STATIC_COLUMNS, STATUS_VALUES,
 )
 
@@ -66,7 +66,7 @@ def load_latest_batch() -> tuple[pd.DataFrame, dict]:
             )
         ).mappings().first()
     if row is None:
-        raise RuntimeError("Chưa có lô SUCCESS nào trong ingestion_log. Hãy chạy python -m src.ingest trước.")
+        raise RuntimeError("Chưa có lô SUCCESS nào trong ingestion_log. Hãy chạy python -m src.etl.ingest trước.")
     response = db.minio_client().get_object(row["bucket"], row["object_key"])
     try:
         content = response.read()
@@ -236,7 +236,7 @@ def validate(raw: pd.DataFrame) -> tuple[list[CheckResult], pd.DataFrame | None]
     if errors:
         return [CheckResult("Schema", "ERROR", " | ".join(errors))], None
     df = to_typed(raw)
-    results = [CheckResult("Schema", "OK", f"{len(df):,} dòng × {df.shape[1]} cột, đúng 22 cột theo src/schema.py")]
+    results = [CheckResult("Schema", "OK", f"{len(df):,} dòng × {df.shape[1]} cột, đúng 22 cột theo src/core/schema.py")]
     results += [check(df) for check in DATA_CHECKS]
     return results, df
 
@@ -317,7 +317,7 @@ def write_report(results: list[CheckResult], df: pd.DataFrame | None, source: di
     overall = _status(any(r.status == "ERROR" for r in results), any(r.status == "WARN" for r in results))
     lines = [
         "# BÁO CÁO CHẤT LƯỢNG DỮ LIỆU",
-        f"*Sinh tự động bởi `python -m src.validate` lúc {datetime.now():%Y-%m-%d %H:%M}. "
+        f"*Sinh tự động bởi `python -m src.etl.validate` lúc {datetime.now():%Y-%m-%d %H:%M}. "
         "Xem phương pháp tại `QUY_TRINH_DU_AN/GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B03_KIEM_TRA_CHAT_LUONG_DU_LIEU.md`.*",
         "",
         *[f"* **{k}:** `{v}`" for k, v in source.items()],

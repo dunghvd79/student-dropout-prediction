@@ -79,14 +79,14 @@ Máy cá nhân (khuyến nghị ≥ 8 GB RAM), Docker Desktop, Python ≥ 3.10, 
    * Ghim `alembic==1.14.0` và `sqlalchemy==2.0.36`: bản Alembic mới hơn không chạy được với MLflow 2.19.
 
 4. Tạo `.env` từ `.env.example` (không commit; đổi mật khẩu).
-5. Tạo `config/settings.yaml`: đường dẫn, `random_state = 42`, ngưỡng rủi ro (0,3 / 0,6), tỷ lệ Test (0,2); `src/config.py` đọc settings + `.env` và tạo chuỗi kết nối dùng chung.
+5. Tạo `config/settings.yaml`: đường dẫn, `random_state = 42`, ngưỡng rủi ro (0,3 / 0,6), tỷ lệ Test (0,2); `src/core/config.py` đọc settings + `.env` và tạo chuỗi kết nối dùng chung.
 6. Tạo cấu trúc thư mục dự án; thêm `data/`, `mlruns/`, `mlartifacts/` vào `.gitignore`.
-7. Chạy `python -m src.check_env` để kiểm tra thư viện, dữ liệu gốc, MinIO, PostgreSQL, MongoDB và MLflow.
+7. Chạy `python -m src.ops.check_env` để kiểm tra thư viện, dữ liệu gốc, MinIO, PostgreSQL, MongoDB và MLflow.
 
 ---
 
 ## 5. Output
-* `requirements.txt`, `docker-compose.yml`, `docker/`, `.env.example`, `config/settings.yaml`, `src/config.py`, `src/check_env.py`.
+* `requirements.txt`, `docker-compose.yml`, `docker/`, `.env.example`, `config/settings.yaml`, `src/core/config.py`, `src/ops/check_env.py`.
 * 4 container đang chạy (MinIO, PostgreSQL, MongoDB, MLflow); các thư mục `src/`, `notebooks/`, `config/`, `sql/`, `app/`, `dashboards/`, `reports/`, `data/`.
 
 ## 6. Công cụ / File thực hiện
@@ -94,7 +94,7 @@ Docker Desktop, `docker compose`, `pip`, Git.
 
 ## 7. Tiêu chí hoàn thành
 - [x] Chạy `docker compose up -d` và `uv pip install -r requirements.txt` thành công.
-- [x] `python -m src.check_env` báo "Tất cả đều sẵn sàng" (đã kiểm tra 2026-10-11).
+- [x] `python -m src.ops.check_env` báo "Tất cả đều sẵn sàng" (đã kiểm tra 2026-10-11).
 - [x] MLflow ghi được artifact vào bucket `mlflow` của MinIO.
 - [ ] Mọi thành viên khác trong nhóm lặp lại được trên máy của mình.
 

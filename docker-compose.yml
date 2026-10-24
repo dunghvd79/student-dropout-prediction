@@ -1,6 +1,6 @@
 # Hạ tầng local của dự án (Bước 1 – QUY_TRINH_DU_AN/GIAI_DOAN_A_CHUAN_BI/B01_DUNG_MOI_TRUONG.md)
 # Khởi động:  docker compose up -d
-# Kiểm tra:   python -m src.check_env
+# Kiểm tra:   python -m src.ops.check_env
 
 name: dropout-ews
 

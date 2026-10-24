@@ -69,7 +69,7 @@ uv venv --python 3.12 --seed .venv
 uv pip install -r requirements.txt
 
 # 4. Kiểm tra mọi thứ đã sẵn sàng
-python -m src.check_env
+python -m src.ops.check_env
 ```
 
 | Dịch vụ | Địa chỉ |

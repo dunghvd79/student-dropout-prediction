@@ -5,8 +5,8 @@ import hashlib
 import pandas as pd
 import pytest
 
-from src.ingest import check_schema, md5_of_file
-from src.schema import COLUMNS
+from src.etl.ingest import check_schema, md5_of_file
+from src.core.schema import COLUMNS
 
 ROW = [
     "STU_00001", "18", "Female", "0", "15000", "2", "Off-Campus", "0", "15000", "1", "15",

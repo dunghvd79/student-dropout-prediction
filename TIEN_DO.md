@@ -1,5 +1,5 @@
 # TIẾN ĐỘ DỰ ÁN
-**Cập nhật lần cuối:** 2026-10-24 · **Commit mới nhất:** `6370c60` (B3 chưa commit)  
+**Cập nhật lần cuối:** 2026-10-24 · **Commit mới nhất:** B3 `62a379c`, sau đó tách `src/` thành gói con (xem `git log`)  
 **Quy trình chi tiết:** [`QUY_TRINH_DU_AN/`](./QUY_TRINH_DU_AN/README.md)
 
 > Cập nhật file này mỗi khi xong một bước: đổi trạng thái, ghi commit, thêm quyết định / vấn đề mới.
@@ -41,21 +41,21 @@
 
 ### B1 – Dựng môi trường ✅ (commit `323315c`)
 * `.venv` Python 3.12.13 (tạo bằng `uv`), cài từ `requirements.txt`.
-* Docker: MinIO, PostgreSQL, MongoDB, MLflow chạy và qua `python -m src.check_env`.
-* File: `docker-compose.yml`, `docker/`, `config/settings.yaml`, `src/config.py`, `src/check_env.py`, `.env.example`.
+* Docker: MinIO, PostgreSQL, MongoDB, MLflow chạy và qua `python -m src.ops.check_env`.
+* File: `docker-compose.yml`, `docker/`, `config/settings.yaml`, `src/core/config.py`, `src/ops/check_env.py`, `.env.example`.
 
 ### B2 – Nạp dữ liệu thô ✅ (commit `6b10ec6`)
-* `python -m src.ingest` → `s3://raw/academic/ingest_date=2026-10-11/batch_id=20261011T085849Z_7df267/academic_survival_longitudinal.csv`.
+* `python -m src.etl.ingest` → `s3://raw/academic/ingest_date=2026-10-11/batch_id=20261011T085849Z_7df267/academic_survival_longitudinal.csv`.
 * 79.239 dòng × 22 cột, MD5 `94f87baf205fb7f1446639749a2dd852`, đã tải ngược và so MD5.
 * Đã kiểm tra: chạy lại → `SKIPPED`; file hỏng → `FAILED`; 8/8 unit test đạt.
-* File: `src/ingest.py`, `src/schema.py`, `src/db.py`, `sql/01_ingestion_log.sql`, `tests/test_ingest.py`.
+* File: `src/etl/ingest.py`, `src/core/schema.py`, `src/core/db.py`, `sql/01_ingestion_log.sql`, `tests/test_ingest.py`.
 
-### B3 – Kiểm tra chất lượng dữ liệu ✅ (chưa commit)
-* `python -m src.validate` trên lô `20261011T085849Z_7df267`: data contract **ĐẠT** (4 OK, 5 WARN, 0 ERROR).
+### B3 – Kiểm tra chất lượng dữ liệu ✅ (commit `62a379c`)
+* `python -m src.etl.validate` trên lô `20261011T085849Z_7df267`: data contract **ĐẠT** (4 OK, 5 WARN, 0 ERROR).
 * Báo cáo [`reports/data_quality_report.md`](./reports/data_quality_report.md) + 4 biểu đồ `reports/figures/dq_*.png`.
 * File cố tình làm hỏng → 5 ERROR, mã thoát 1. Tổng cộng 21/21 unit test đạt.
 * Phát hiện: tỷ lệ bỏ học theo `Financial_Stress` tính đúng trên tập có nhãn là **5,3% → 50,2%** (số cũ 4,6% → 47% tính trên toàn bộ dữ liệu); đã sửa trong THIET_KE_PIPELINE, B03, B06.
-* File: `src/validate.py`, `src/schema.py` (thêm `RANGES`, `STATIC_COLUMNS`, `GENDER_MAP`…), `tests/test_validate.py`, `pytest.ini`; thêm `tabulate` vào requirements.
+* File: `src/etl/validate.py`, `src/core/schema.py` (thêm `RANGES`, `STATIC_COLUMNS`, `GENDER_MAP`…), `tests/test_validate.py`, `pytest.ini`; thêm `tabulate` vào requirements.
 
 ---
 
@@ -63,13 +63,13 @@
 
 Chi tiết: [`B04_LAM_SACH_DU_LIEU.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B04_LAM_SACH_DU_LIEU.md) · Căn cứ: [`reports/data_quality_report.md`](./reports/data_quality_report.md)
 
-- [ ] `src/clean.py`: đọc lô `SUCCESS` mới nhất, chạy `validate` trước (dừng nếu ERROR), rồi làm sạch theo đúng thứ tự 10 thao tác ở B04.
-- [ ] `Gender` map theo `GENDER_MAP` (đã có trong `src/schema.py`); `Attendance` clip [0, 100]; `Family_Income` ffill + bfill theo sinh viên + cờ `Income_Missing`; `LMS_Logins` chỉ ffill + cờ `LMS_Missing`.
+- [ ] `src/etl/clean.py`: đọc lô `SUCCESS` mới nhất, chạy `validate` trước (dừng nếu ERROR), rồi làm sạch theo đúng thứ tự 10 thao tác ở B04.
+- [ ] `Gender` map theo `GENDER_MAP` (đã có trong `src/core/schema.py`); `Attendance` clip [0, 100]; `Family_Income` ffill + bfill theo sinh viên + cờ `Income_Missing`; `LMS_Logins` chỉ ffill + cờ `LMS_Missing`.
 - [ ] Ghi `clean_semesters.parquet` vào `data/processed/` và MinIO bucket `processed`.
 - [ ] Kiểm tra sau làm sạch: vẫn 79.239 dòng; `Attendance` trong [0, 100]; `Gender` còn 3 nhóm; `Family_Income` còn thiếu đúng 199 sinh viên.
 - [ ] Unit test; chạy 2 lần cho kết quả giống hệt nhau.
 
-Sau B4: B5 (`src/load.py`, `sql/02_*.sql`) để hoàn tất Giai đoạn B.
+Sau B4: B5 (`src/etl/load.py`, `sql/02_*.sql`) để hoàn tất Giai đoạn B.
 
 ---
 
@@ -111,7 +111,7 @@ Sau B4: B5 (`src/load.py`, `sql/02_*.sql`) để hoàn tất Giai đoạn B.
 ```powershell
 docker compose up -d          # bật lại MinIO, PostgreSQL, MongoDB, MLflow
 .venv\Scripts\activate
-python -m src.check_env       # phải báo "Tất cả đều sẵn sàng"
+python -m src.ops.check_env       # phải báo "Tất cả đều sẵn sàng"
 python -m pytest              # 21/21 đạt
 ```
 

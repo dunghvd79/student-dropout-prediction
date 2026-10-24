@@ -72,7 +72,7 @@ Mô hình + tham số tốt nhất, dự đoán OOF (từ B11), `X_test, y_test`
 * Ngưỡng và mốc rủi ro trong `config/settings.yaml`.
 
 ## 6. Công cụ / File thực hiện
-`src/train.py` (hàm `evaluate`, `register`), notebook `04_machine_learning_models.ipynb` (`scikit-learn`, `mlflow`).
+`src/ml/train.py` (hàm `evaluate`, `register`), notebook `04_machine_learning_models.ipynb` (`scikit-learn`, `mlflow`).
 
 ## 7. Tiêu chí hoàn thành
 - [ ] Đạt tiêu chí thành công ở B0 trên Test (hoặc có giải thích rõ nếu chưa đạt).

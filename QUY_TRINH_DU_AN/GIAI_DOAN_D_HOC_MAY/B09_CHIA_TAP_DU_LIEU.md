@@ -66,7 +66,7 @@ Cố định `random_state = 42` và **lưu danh sách `Student_ID` của tập 
 * `data/splits/test_student_ids.csv`.
 
 ## 6. Công cụ / File thực hiện
-`src/train.py` (hàm `make_splits`), notebook `04_machine_learning_models.ipynb` (`scikit-learn`).
+`src/ml/train.py` (hàm `make_splits`), notebook `04_machine_learning_models.ipynb` (`scikit-learn`).
 
 ## 7. Tiêu chí hoàn thành
 - [ ] Các kiểm tra ở mục 4.5 đều đạt (có `assert` trong code).
