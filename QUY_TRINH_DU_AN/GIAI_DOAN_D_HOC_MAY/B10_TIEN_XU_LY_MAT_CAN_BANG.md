@@ -72,15 +72,53 @@ Viết hàm `build_pipeline(model_name, imbalance='weight')` trả về Pipeline
 ---
 
 ## 5. Output
-Hàm `build_pipeline()` cho từng loại mô hình.
+Hàm `build_pipeline(name, spec, imbalance, y_train, params)` trong `src/ml/train.py` trả về Pipeline **chưa fit**:
+
+```text
+CastTypes  →  ColumnTransformer (tiền xử lý)  →  [SMOTE]  →  mô hình
+(ép kiểu cố định,  (mọi tham số học từ fold       (chỉ khi fit,
+ không học gì)      huấn luyện)                     trên fold huấn luyện)
+```
+
+| Loại tiền xử lý | Dùng cho | Nội dung |
+|---|---|---|
+| `linear` | LogReg | 6 biến lệch: median → winsorize P1–P99 → `log1p` → scale; `Delta_*`, `GPA_Slope`: điền 0 → scale; số còn lại: median → scale; nhị phân giữ nguyên; One-Hot |
+| `native` | XGBoost, LightGBM | Giữ `NaN` (mô hình tự xử lý); One-Hot |
+| `impute` | DT, RF và mọi mô hình khi dùng SMOTE | Median cho cột số; One-Hot |
+
+* **Mất cân bằng lớp:**
+  * `weight`: `class_weight='balanced'` (LogReg, DT), `'balanced_subsample'` (RF), `scale_pos_weight = âm / dương` tính từ `y_train` được truyền vào (XGBoost, LightGBM).
+  * `smote`: `imblearn.Pipeline`, SMOTE chỉ chạy lúc `fit`.
+  * `none`: không xử lý.
+* 6 mô hình: `dummy`, `logreg`, `dtree`, `rf`, `xgb`, `lgbm`, với tham số mặc định hợp lý; B11 tinh chỉnh qua `params`.
+* Sau tiền xử lý: 43 đặc trưng → **47 cột** (One-Hot `Gender` và `Housing_Status`, mỗi biến 3 giá trị).
+
+**Chạy thử trên dữ liệu thật** (1 fold CV trong Train: 43.683 / 10.791 dòng; **không dùng tập Test**; chỉ để chắc pipeline chạy đúng, so sánh chính thức ở B11):
+
+| Mô hình | Mất cân bằng | PR-AUC | ROC-AUC | Thời gian |
+|---|---|---:|---:|---:|
+| dummy | – | 0,106 | 0,500 | 0,3 giây |
+| logreg | weight | **0,414** | 0,798 | 0,9 giây |
+| dtree | weight | 0,320 | 0,747 | 0,7 giây |
+| rf | weight | 0,378 | 0,786 | 6,5 giây |
+| xgb | weight | 0,395 | 0,782 | 3,6 giây |
+| lgbm | weight | 0,395 | 0,783 | 1,8 giây |
+| logreg | smote | 0,412 | 0,797 | 1,6 giây |
+| lgbm | smote | 0,398 | 0,785 | 3,3 giây |
+
+* Mọi mô hình vượt xa mốc ngẫu nhiên (PR-AUC 0,106). Với tham số mặc định, **LogReg đang nhỉnh hơn mô hình cây** trên fold này. B11 phải kiểm chứng bằng CV đủ 5 fold và tinh chỉnh, chưa được mặc định chọn XGBoost.
+* SMOTE không cải thiện rõ so với trọng số lớp, nhưng làm huấn luyện chậm hơn.
 
 ## 6. Công cụ / File thực hiện
-`src/ml/train.py` (`scikit-learn`, `imbalanced-learn`).
+* `src/ml/train.py`: `CastTypes`, `Winsorizer` (tự viết, học phân vị khi fit), `column_groups`, `build_preprocessor`, `positive_weight`, `build_model`, `build_pipeline`.
+* `tests/test_train_pipeline.py`: 27 unit test, gồm 18 tổ hợp (6 mô hình × 3 cách xử lý mất cân bằng) fit trên dữ liệu có `NaN` / `pd.NA`.
+* Ghim `scipy==1.14.1`: bản 1.18 gây cảnh báo `iprint` khi dùng với scikit-learn 1.5.2.
 
-## 7. Tiêu chí hoàn thành
-- [ ] Pipeline `fit` / `predict_proba` được trên dữ liệu có `NaN`.
-- [ ] Không có bước fit nào nằm ngoài Pipeline (rà lại code).
-- [ ] `scale_pos_weight` được tính từ `y_train`, không hard-code từ toàn bộ dữ liệu.
+## 7. Tiêu chí hoàn thành (đã kiểm tra 2026-10-26)
+- [x] Pipeline `fit` / `predict_proba` được trên dữ liệu có `NaN` (cả `pd.NA` của `LMS_Logins`) cho mọi mô hình và mọi cách xử lý mất cân bằng.
+- [x] Không có bước fit nào ngoài Pipeline. Test xác nhận trung vị và mean của imputer / scaler bằng đúng thống kê của dữ liệu huấn luyện, và không đổi khi dự đoán.
+- [x] `scale_pos_weight` tính từ `y_train` truyền vào (test kiểm tra đúng tỷ lệ âm / dương); SMOTE chỉ cân bằng lúc fit, dự đoán giữ nguyên số dòng.
+- [x] Giá trị phân loại chưa từng thấy (ví dụ `Housing_Status = "Dorm"`) không làm lỗi dự đoán.
 
 ---
 

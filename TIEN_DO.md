@@ -1,5 +1,5 @@
 # TIẾN ĐỘ DỰ ÁN
-**Cập nhật lần cuối:** 2026-10-26 · **Commit mới nhất:** "Buoc 9: chia tap du lieu" (xem `git log`)  
+**Cập nhật lần cuối:** 2026-10-26 · **Commit mới nhất:** "Buoc 10: tien xu ly trong Pipeline" (xem `git log`)  
 **Quy trình chi tiết:** [`QUY_TRINH_DU_AN/`](./QUY_TRINH_DU_AN/README.md)
 
 > Cập nhật file này mỗi khi xong một bước: đổi trạng thái, ghi commit, thêm quyết định / vấn đề mới.
@@ -20,8 +20,8 @@
 | | B7 Trích xuất đặc trưng | ✅ Xong |
 | | B8 Khai phá dữ liệu | ✅ Xong |
 | **D – Học máy** | B9 Chia tập | ✅ Xong |
-| | B10 Tiền xử lý & mất cân bằng | ⏭️ **Làm tiếp theo** |
-| | B11 Huấn luyện & tinh chỉnh | ⬜ Chưa làm |
+| | B10 Tiền xử lý & mất cân bằng | ✅ Xong |
+| | B11 Huấn luyện & tinh chỉnh | ⏭️ **Làm tiếp theo** |
 | | B12 Đánh giá & chọn ngưỡng | ⬜ Chưa làm |
 | | B13 Giải thích SHAP | ⬜ Chưa làm |
 | **E – Triển khai & Vận hành** | B14 Dự đoán theo lô | ⬜ Chưa làm |
@@ -29,7 +29,7 @@
 | | B16 Giám sát & vận hành | ⬜ Chưa làm |
 | **F – Kết thúc** | B17 Báo cáo & bảo vệ | ⬜ Chưa làm |
 
-**Hoàn thành: 10 / 18 bước** (Giai đoạn A, B, C xong; Giai đoạn D: 1/5).
+**Hoàn thành: 11 / 18 bước** (Giai đoạn A, B, C xong; Giai đoạn D: 2/5).
 
 ---
 
@@ -110,16 +110,23 @@
   4. Tài liệu: kích thước bảng đặc trưng "~45" → 47 cột (43 đặc trưng); số dòng Train/Test chính xác; ví dụ clipping ở B04; mục "Dữ liệu đang có".
 * **Ghi nhận về dữ liệu** (không phải lỗi): mọi dòng nhãn 1 đều là kỳ cuối quan sát của sinh viên; 18% dòng nhãn 0 cũng là kỳ cuối (tốt nghiệp). Toàn bộ 1.968 sinh viên tốt nghiệp ở kỳ 8; kỳ 8 có 204 dòng "bỏ học kỳ sau", nghĩa là không tốt nghiệp đúng hạn. Không đặc trưng nào mã hóa "đây là kỳ cuối", nên không gây rò rỉ.
 
+### B10 – Tiền xử lý & mất cân bằng lớp ✅ (commit "Buoc 10: tien xu ly trong Pipeline")
+* `src/ml/train.py`: `build_pipeline(name, spec, imbalance, y_train)` → Pipeline chưa fit (`CastTypes` → tiền xử lý `linear` / `native` / `impute` → [SMOTE] → mô hình); 6 mô hình, 3 cách xử lý mất cân bằng.
+* 27 unit test mới (tổng 84/84 đạt): mọi tổ hợp fit được trên dữ liệu có `NaN`; tham số học chỉ từ dữ liệu huấn luyện; SMOTE chỉ chạy lúc fit.
+* Chạy thử trên 1 fold CV (không dùng Test): mọi mô hình vượt xa mốc 0,106; **LogReg 0,414 nhỉnh hơn XGBoost / LightGBM 0,395** với tham số mặc định, nên B11 phải kiểm chứng.
+* Ghim `scipy==1.14.1` (trước đó chưa ghim, bản 1.18 gây cảnh báo với scikit-learn 1.5.2).
+
 ---
 
-## 3. Việc tiếp theo: B10 – Tiền xử lý trong Pipeline & mất cân bằng lớp
+## 3. Việc tiếp theo: B11 – Huấn luyện, tinh chỉnh & theo dõi bằng MLflow
 
-Chi tiết: [`B10_TIEN_XU_LY_MAT_CAN_BANG.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_MAY/B10_TIEN_XU_LY_MAT_CAN_BANG.md)
+Chi tiết: [`B11_HUAN_LUYEN_TINH_CHINH.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_MAY/B11_HUAN_LUYEN_TINH_CHINH.md)
 
-- [ ] `src/ml/train.py`: hàm `build_pipeline(model_name, imbalance)` trả về Pipeline **chưa fit**.
-- [ ] `ColumnTransformer` theo `feature_spec.json`: LogReg (imputer median, Delta điền 0, winsorize P1–P99 + `log1p` biến lệch, `StandardScaler`, One-Hot); mô hình cây (giữ `NaN` cho XGBoost / LightGBM, imputer median cho RF / DT, One-Hot).
-- [ ] Mất cân bằng: `class_weight='balanced'`, `scale_pos_weight` tính từ `y_train`, thử SMOTE trong `imblearn.Pipeline`.
-- [ ] Unit test: Pipeline fit được trên dữ liệu có `NaN`; không có bước nào fit ngoài Pipeline; tham số học (median, mean/std) chỉ từ Train.
+- [ ] CV 5 fold theo sinh viên (`cv_splitter()`) cho 6 mô hình; ghi trung bình ± std của PR-AUC, ROC-AUC, Recall, Precision, F1.
+- [ ] So sánh `weight` và `smote`; ablation: đặc trưng gốc so với gốc + chiều dọc (`baseline_features` và `features`).
+- [ ] Tinh chỉnh 2 mô hình tốt nhất bằng Optuna (tối ưu PR-AUC, CV theo nhóm). Câu hỏi mở: LogReg có thực sự tốt hơn mô hình cây không?
+- [ ] Log mọi lần chạy vào MLflow experiment `dropout_ews`; lưu dự đoán OOF của mô hình tốt nhất cho B12.
+- [ ] `reports/model_comparison.csv` + notebook `04_machine_learning_models.ipynb`.
 
 ---
 
@@ -166,7 +173,7 @@ Chi tiết: [`B10_TIEN_XU_LY_MAT_CAN_BANG.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC
 docker compose up -d          # bật lại MinIO, PostgreSQL, MongoDB, MLflow
 .venv\Scripts\activate
 python -m src.ops.check_env       # phải báo "Tất cả đều sẵn sàng"
-python -m pytest              # 57/57 đạt
+python -m pytest              # 84/84 đạt
 ```
 
 * Muốn giải phóng RAM khi không làm: `docker compose stop` (dữ liệu vẫn giữ trong volume).
