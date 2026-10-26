@@ -118,7 +118,8 @@ Kế thừa kiến trúc **Polyglot Persistence (PostgreSQL + MongoDB)** đã th
 
 ### 10. Machine Learning & Quản lý phiên bản (Model Management)
 * **Mục đích của Model:** Dự đoán xác suất sinh viên bỏ học ở kỳ tiếp theo (`Target_Dropout_Next_Sem = 1`, chiếm ~**8,7%** toàn bộ dữ liệu và **10,2%** tập có nhãn sau khi loại các dòng `Censored = 1`, mất cân bằng lớp) và gán Risk Score: **Thấp** (< 0,3), **Trung bình** (0,3 – 0,6), **Cao** (≥ 0,6).
-* **Nơi chạy:** Batch Inference Script bằng Python (Scikit-Learn, XGBoost) chạy định kỳ trên máy local/container. Đối tượng được chấm điểm là kỳ mới nhất của các sinh viên đang theo học (11.115 dòng `Censored = 1`). Kết quả ghi vào bảng `predictions` trong PostgreSQL.
+* **Mô hình:** **Logistic Regression** (trọng số lớp), chọn sau khi so sánh 6 mô hình bằng CV 5 fold theo sinh viên. Sau tinh chỉnh, XGBoost ngang bằng (PR-AUC 0,4090 so với 0,4097) nên chọn mô hình đơn giản, dễ giải thích hơn (xem B11).
+* **Nơi chạy:** Batch Inference Script bằng Python (Scikit-Learn) chạy định kỳ trên máy local/container. Đối tượng được chấm điểm là kỳ mới nhất của các sinh viên đang theo học (11.115 dòng `Censored = 1`). Kết quả ghi vào bảng `predictions` trong PostgreSQL.
 * **Công cụ quản lý phiên bản:** **MLflow** (chạy trong container Docker, backend store là PostgreSQL, artifact store là MinIO) để:
   * Theo dõi tham số (Hyperparameters), độ đo (Recall, F1-Score, PR-AUC).
   * Đăng ký và quản lý phiên bản mô hình (Model Registry: Staging, Production).
@@ -151,8 +152,8 @@ Lựa chọn **5 metrics cốt lõi** để kiểm tra tính ổn định:
 
 **Pipeline của nhóm:**
 ```text
-CSV (SIS/LMS/Survey) → MinIO (Raw) → Python ETL (Pandas) → PostgreSQL + MongoDB → MLflow → XGBoost Model → Power BI / Streamlit
+CSV (SIS/LMS/Survey) → MinIO (Raw) → Python ETL (Pandas) → PostgreSQL + MongoDB → MLflow → Logistic Regression → Power BI / Streamlit
 ```
 
 * **Lý giải ngắn gọn tại sao kiến trúc này phù hợp:**
-  Kiến trúc này **tinh gọn, thực dụng và không over-engineering ở tầng xử lý**. Với khoảng 79.239 bản ghi (~7,4 MB), dữ liệu được xử lý hoàn toàn trong bộ nhớ bằng Python/Pandas chỉ trong vài giây, nên không cần Spark/Flink. Tầng lưu trữ kế thừa thiết kế Polyglot của bài giữa kỳ: PostgreSQL cho dữ liệu tĩnh cần toàn vẹn, MongoDB cho dữ liệu học kỳ có schema linh hoạt, còn MinIO giữ dữ liệu thô để chạy lại khi cần. MLflow quản lý phiên bản mô hình XGBoost. Toàn bộ chạy local bằng Docker với chi phí 0 đồng nhưng vẫn theo chuẩn công nghiệp và dễ chuyển lên cloud khi quy mô tăng.
+  Kiến trúc này **tinh gọn, thực dụng và không over-engineering ở tầng xử lý**. Với khoảng 79.239 bản ghi (~7,4 MB), dữ liệu được xử lý hoàn toàn trong bộ nhớ bằng Python/Pandas chỉ trong vài giây, nên không cần Spark/Flink. Tầng lưu trữ kế thừa thiết kế Polyglot của bài giữa kỳ: PostgreSQL cho dữ liệu tĩnh cần toàn vẹn, MongoDB cho dữ liệu học kỳ có schema linh hoạt, còn MinIO giữ dữ liệu thô để chạy lại khi cần. MLflow ghi lại mọi thí nghiệm (6 mô hình, tinh chỉnh, ablation) và quản lý phiên bản mô hình Logistic Regression được chọn. Toàn bộ chạy local bằng Docker với chi phí 0 đồng nhưng vẫn theo chuẩn công nghiệp và dễ chuyển lên cloud khi quy mô tăng.

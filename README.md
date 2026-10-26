@@ -6,7 +6,7 @@
 ---
 
 ## 📌 Giới thiệu đề tài
-Dự án tập trung xây dựng **Hệ thống Cảnh báo Sớm (Early Warning System - EWS)** nhằm phát hiện sớm sinh viên có nguy cơ bỏ học ở học kỳ kế tiếp. Điểm độc đáo của dự án là tiếp cận theo **quỹ đạo thời gian (Longitudinal Trajectory)** qua tối đa 8 học kỳ liên tiếp, kết hợp các khía cạnh:
+Dự án tập trung xây dựng **Hệ thống Cảnh báo Sớm (Early Warning System - EWS)** nhằm phát hiện sớm sinh viên có nguy cơ bỏ học ở học kỳ kế tiếp. Dự án tiếp cận theo **quỹ đạo thời gian (Longitudinal Trajectory)** qua tối đa 8 học kỳ liên tiếp, và **kiểm chứng bằng thí nghiệm** giá trị của cách tiếp cận này: quỹ đạo giúp **mô tả và giải thích** (xu hướng sa sút trước khi bỏ học, luật kết hợp, lý do cảnh báo), nhưng **không tăng độ chính xác dự báo** khi đã biết trạng thái hiện tại (ablation 15 fold, [B11](QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_MAY/B11_HUAN_LUYEN_TINH_CHINH.md)). Dữ liệu kết hợp các khía cạnh:
 * **Học tập:** Điểm trung bình (`Sem_GPA`), số môn trượt (`Failed_Courses`), số tín chỉ (`Course_Load`).
 * **Hành vi & Tương tác:** Chuyên cần (`Attendance`), đăng nhập LMS (`LMS_Logins`), gặp cố vấn (`Advising_Visits`).
 * **Kinh tế - Xã hội:** Áp lực tài chính (`Financial_Stress`), giờ làm thêm (`Work_Hours`), thu nhập gia đình (`Family_Income`).
@@ -44,7 +44,7 @@ Python ETL Pipeline (Pandas / Data Cleaning)
 Polyglot Storage (PostgreSQL + MongoDB)
            │
            ▼
-Machine Learning & Tracking (XGBoost / Random Forest + MLflow)
+Machine Learning & Tracking (so sánh 6 mô hình → Logistic Regression + MLflow)
            │
            ▼
 Early Warning Dashboard (Power BI / Streamlit)

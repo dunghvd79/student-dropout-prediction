@@ -28,6 +28,11 @@
   * Sự sụt giảm GPA theo thời gian ($\Delta \text{GPA} = \text{GPA}_t - \text{GPA}_{t-1}$).
   * Mức độ sụt giảm chuyên cần và tương tác LMS.
   * Sự gia tăng áp lực tài chính và số giờ làm thêm.
+* **Kết quả kiểm chứng** (chi tiết ở [B11](QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_MAY/B11_HUAN_LUYEN_TINH_CHINH.md)):
+  * EDA cho thấy nhóm sắp bỏ học **sa sút rõ** trong 4 kỳ trước khi bỏ (GPA 2,74 → 2,35; áp lực tài chính 2,94 → 3,87).
+  * Tuy nhiên, thí nghiệm ablation (3 seed × 5 fold) cho thấy thêm 23 đặc trưng chiều dọc **không cải thiện** dự báo: PR-AUC LogReg 0,4090 → 0,4098, khoảng tin cậy chứa 0.
+  * Riêng các đặc trưng chiều dọc vẫn đạt PR-AUC 0,354 (so với mốc 0,10), tức là **có thông tin nhưng trùng với trạng thái hiện tại**: sự sa sút đã thể hiện sẵn trong GPA, số môn nợ, áp lực tài chính của kỳ đang xét.
+  * ⇒ Giá trị của dữ liệu theo chiều dọc trong đề tài nằm ở **mô tả, khai phá và giải thích** (EDA, luật `GPA thấp + GPA tụt → 48% bỏ học`, lý do cảnh báo cho cố vấn). Đây là một **kết quả âm có đối chứng**, không phải giả định.
 
 ---
 
@@ -127,7 +132,7 @@ Dataset gồm **22 thuộc tính**, được chia thành 5 nhóm thông tin:
 * **Giải pháp:** Sử dụng `GroupKFold` hoặc `GroupShuffleSplit` theo cột `Student_ID`. Toàn bộ lịch sử học tập của một sinh viên chỉ được nằm hoàn toàn ở tập Train hoặc hoàn toàn ở tập Test.
 
 ### 5.2. Kỹ thuật trích xuất đặc trưng theo chuỗi thời gian (Feature Engineering)
-Tận dụng lịch sử các kỳ trước để tạo ra các thuộc tính có tính dự báo mạnh nhất:
+Tận dụng lịch sử các kỳ trước để tạo ra các thuộc tính mô tả xu hướng (7/10 đặc trưng có tín hiệu đơn biến mạnh nhất là đặc trưng chiều dọc, nhưng không tăng độ chính xác khi đã có giá trị hiện tại; xem mục 2.2):
 1. `Delta_Sem_GPA = Sem_GPA - Sem_GPA_prev` (Mức sụt giảm điểm kỳ này so với kỳ trước).
 2. `Delta_Attendance = Attendance - Attendance_prev` (Mức độ suy giảm chuyên cần).
 3. `Cumulative_Failed_Courses` (Tổng số môn nợ tích lũy đến kỳ hiện tại).
@@ -147,7 +152,7 @@ Tận dụng lịch sử các kỳ trước để tạo ra các thuộc tính c�
 | Câu hỏi của Thầy/Cô | Câu trả lời trọng tâm cần trình bày |
 | :--- | :--- |
 | **1. Tại sao nhóm lại chọn đề tài này?** | Đề tài giải quyết bài toán thực tế của các trường đại học: Xây dựng hệ thống cảnh báo sớm (Early Warning System) để can thiệp kịp thời, cải thiện tỷ lệ giữ chân sinh viên. |
-| **2. Điểm khác biệt lớn nhất của tập dữ liệu này là gì?** | Đây là dữ liệu theo chiều dọc (Longitudinal Data), cho phép theo dõi toàn bộ quỹ đạo biến thiên (Trajectory) của từng sinh viên qua tối đa 8 học kỳ, thay vì chỉ là dữ liệu tĩnh tại một thời điểm. |
+| **2. Điểm khác biệt lớn nhất của tập dữ liệu này là gì?** | Đây là dữ liệu theo chiều dọc (Longitudinal Data), cho phép theo dõi toàn bộ quỹ đạo biến thiên (Trajectory) của từng sinh viên qua tối đa 8 học kỳ. Nhóm **không mặc định** quỹ đạo giúp dự báo tốt hơn mà **kiểm chứng bằng ablation**: quỹ đạo không tăng PR-AUC (0,4090 so với 0,4098) vì thông tin đã có trong trạng thái hiện tại, nhưng rất có giá trị để mô tả xu hướng sa sút và giải thích lý do cảnh báo. |
 | **3. Nhóm phân định phần Data Mining và phần Machine Learning như thế nào?** | Data Mining giúp **mô tả và tìm hiểu tri thức ẩn** (phân cụm sinh viên, tìm luật kết hợp giữa làm thêm - tài chính - điểm số). Machine Learning giúp **dự báo định lượng xác suất** sinh viên bỏ học ở kỳ tiếp theo. |
 | **4. Làm sao nhóm đảm bảo mô hình không bị Overfitting do dữ liệu lặp lại?** | Nhóm chia tập kiểm thử bằng chiến lược `GroupKFold` theo `Student_ID`, đảm bảo lịch sử của cùng một sinh viên không bị rò rỉ đồng thời giữa tập huấn luyện và tập kiểm thử. |
 

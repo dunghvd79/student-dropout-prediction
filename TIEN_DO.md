@@ -1,5 +1,5 @@
 # TIẾN ĐỘ DỰ ÁN
-**Cập nhật lần cuối:** 2026-10-26 · **Commit mới nhất:** "Buoc 10: tien xu ly trong Pipeline" (xem `git log`)  
+**Cập nhật lần cuối:** 2026-10-26 · **Commit mới nhất:** xem `git log`  
 **Quy trình chi tiết:** [`QUY_TRINH_DU_AN/`](./QUY_TRINH_DU_AN/README.md)
 
 > Cập nhật file này mỗi khi xong một bước: đổi trạng thái, ghi commit, thêm quyết định / vấn đề mới.
@@ -21,15 +21,15 @@
 | | B8 Khai phá dữ liệu | ✅ Xong |
 | **D – Học máy** | B9 Chia tập | ✅ Xong |
 | | B10 Tiền xử lý & mất cân bằng | ✅ Xong |
-| | B11 Huấn luyện & tinh chỉnh | ⏭️ **Làm tiếp theo** |
-| | B12 Đánh giá & chọn ngưỡng | ⬜ Chưa làm |
+| | B11 Huấn luyện & tinh chỉnh | ✅ Xong |
+| | B12 Đánh giá & chọn ngưỡng | ⏭️ **Làm tiếp theo** |
 | | B13 Giải thích SHAP | ⬜ Chưa làm |
 | **E – Triển khai & Vận hành** | B14 Dự đoán theo lô | ⬜ Chưa làm |
 | | B15 Dashboard | ⬜ Chưa làm |
 | | B16 Giám sát & vận hành | ⬜ Chưa làm |
 | **F – Kết thúc** | B17 Báo cáo & bảo vệ | ⬜ Chưa làm |
 
-**Hoàn thành: 11 / 18 bước** (Giai đoạn A, B, C xong; Giai đoạn D: 2/5).
+**Hoàn thành: 12 / 18 bước** (Giai đoạn A, B, C xong; Giai đoạn D: 3/5).
 
 ---
 
@@ -116,17 +116,27 @@
 * Chạy thử trên 1 fold CV (không dùng Test): mọi mô hình vượt xa mốc 0,106; **LogReg 0,414 nhỉnh hơn XGBoost / LightGBM 0,395** với tham số mặc định, nên B11 phải kiểm chứng.
 * Ghim `scipy==1.14.1` (trước đó chưa ghim, bản 1.18 gây cảnh báo với scikit-learn 1.5.2).
 
+### B11 – Huấn luyện & tinh chỉnh ✅ (commit "Buoc 11: huan luyen, tinh chinh, ablation")
+* `python -m src.ml.experiments`: so sánh 12 cấu hình (CV 5 fold theo sinh viên), Optuna 40 thử nghiệm cho LogReg + XGBoost, ablation; mọi lần chạy ghi vào MLflow `dropout_ews`.
+* **Kết quả:** LogReg 0,4095 dẫn đầu khi dùng tham số mặc định; sau tinh chỉnh LogReg 0,4097 ≈ XGBoost 0,4090 (`max_depth = 2`). **Chọn LogReg** (`C = 1,22`, trọng số lớp, 43 đặc trưng); dự đoán OOF lưu `data/models/oof_best.parquet`.
+* **Phát hiện quan trọng:**
+  1. **Đặc trưng chiều dọc không cải thiện dự báo** (LogReg 0,4090 → 0,4097, chỉ tốt hơn 2/5 fold; XGBoost còn giảm; kỳ ≥ 3 cũng không khác).
+  2. SMOTE làm giảm PR-AUC; ban đầu còn mất tác dụng âm thầm với mô hình cây do nội suy cột rời rạc (đã sửa bằng SMOTENC).
+  3. Trọng số lớp không đổi PR-AUC, chỉ đổi ngưỡng.
+* **Kiểm chứng độ vững:** lặp CV 3 seed × 5 fold: LogReg +0,0008 (khoảng tin cậy chứa 0), XGBoost −0,0019; pipeline đủ 47 cột; chỉ đặc trưng chiều dọc đạt 0,354 ⇒ có thông tin nhưng trùng với trạng thái hiện tại.
+* Sửa lỗi: tham số Optuna trùng tham số đặt cứng trong `build_model`. 12 test mới; tổng 96/96 đạt. Notebook `04_machine_learning_models.ipynb` (phần B9 – B11).
+
 ---
 
-## 3. Việc tiếp theo: B11 – Huấn luyện, tinh chỉnh & theo dõi bằng MLflow
+## 3. Việc tiếp theo: B12 – Đánh giá trên Test, chọn ngưỡng & đăng ký mô hình
 
-Chi tiết: [`B11_HUAN_LUYEN_TINH_CHINH.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_MAY/B11_HUAN_LUYEN_TINH_CHINH.md)
+Chi tiết: [`B12_DANH_GIA_CHON_NGUONG.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_MAY/B12_DANH_GIA_CHON_NGUONG.md)
 
-- [ ] CV 5 fold theo sinh viên (`cv_splitter()`) cho 6 mô hình; ghi trung bình ± std của PR-AUC, ROC-AUC, Recall, Precision, F1.
-- [ ] So sánh `weight` và `smote`; ablation: đặc trưng gốc so với gốc + chiều dọc (`baseline_features` và `features`).
-- [ ] Tinh chỉnh 2 mô hình tốt nhất bằng Optuna (tối ưu PR-AUC, CV theo nhóm). Câu hỏi mở: LogReg có thực sự tốt hơn mô hình cây không?
-- [ ] Log mọi lần chạy vào MLflow experiment `dropout_ews`; lưu dự đoán OOF của mô hình tốt nhất cho B12.
-- [ ] `reports/model_comparison.csv` + notebook `04_machine_learning_models.ipynb`.
+- [ ] Hiệu chỉnh xác suất (isotonic, CV theo nhóm trên Train); reliability curve + Brier score trước / sau.
+- [ ] Chọn ngưỡng trên **OOF** (`oof_best.parquet`) để Recall ≥ 0,80 (OOF cho thấy Precision chỉ ~0,19 tại đó); cập nhật mốc rủi ro trong `settings.yaml` nếu cần.
+- [ ] Huấn luyện lại trên toàn Train; đánh giá **Test một lần duy nhất** (PR-AUC, ROC-AUC, Recall, Precision, F1, ma trận nhầm lẫn).
+- [ ] Phân tích lỗi & công bằng (theo học kỳ, `Gender`, `First_Generation`, `Housing_Status`).
+- [ ] Đăng ký `dropout_model` vào MLflow Model Registry ở trạng thái Production.
 
 ---
 
@@ -164,6 +174,9 @@ Chi tiết: [`B11_HUAN_LUYEN_TINH_CHINH.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_M
 | 8 | Ghim `alembic==1.14.0` | Bản mới hơn làm MLflow 2.19 không khởi động được | requirements.txt, Dockerfile |
 | 9 | Key MinIO thêm `batch_id=…` | Nạp nhiều lần trong cùng ngày không ghi đè lô cũ | B02 |
 | 10 | `Attendance = −2` coi là thiếu, điền bằng kỳ trước (chỉ clip > 100) | −2 là mã lỗi (kỳ trước / sau ~86%); clip về 0 tạo cú sụt giả | B03, B04, B07, THIET_KE_PIPELINE |
+| 11 | Không dùng SMOTE; dùng trọng số lớp | SMOTE (kể cả SMOTENC) giảm PR-AUC ở cả 3 mô hình vì phá ràng buộc giữa các đặc trưng | B10, B11 |
+| 12 | Mô hình cuối là **Logistic Regression** (không phải XGBoost như thiết kế ban đầu) | Ngang XGBoost tinh chỉnh (0,4097 so với 0,4090) nhưng đơn giản, ổn định, dễ giải thích | B11, THIET_KE_PIPELINE, README |
+| 13 | Trình bày dữ liệu chiều dọc là giá trị **mô tả / giải thích**, không phải độ chính xác | Ablation 3 seed × 5 fold: không cải thiện PR-AUC | README, PROJECT_OVERVIEW, B06, B07, B11 |
 
 ---
 
@@ -173,7 +186,7 @@ Chi tiết: [`B11_HUAN_LUYEN_TINH_CHINH.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_M
 docker compose up -d          # bật lại MinIO, PostgreSQL, MongoDB, MLflow
 .venv\Scripts\activate
 python -m src.ops.check_env       # phải báo "Tất cả đều sẵn sàng"
-python -m pytest              # 84/84 đạt
+python -m pytest              # 96/96 đạt
 ```
 
 * Muốn giải phóng RAM khi không làm: `docker compose stop` (dữ liệu vẫn giữ trong volume).
@@ -183,6 +196,7 @@ python -m pytest              # 84/84 đạt
 
 ## 7. Vấn đề còn mở
 
+- [x] **Cách trình bày "điểm độc đáo":** đã sửa README, PROJECT_OVERVIEW, B06, B07, B11, B17, THIET_KE_PIPELINE theo hướng "quỹ đạo giúp mô tả / giải thích, đã kiểm chứng là không tăng độ chính xác"; bổ sung kiểm chứng độ vững. Nhóm nên đọc lại trước khi bảo vệ.
 - [ ] Các thành viên khác chưa thử dựng lại môi trường trên máy của mình (tiêu chí cuối của B1).
 - [ ] Tiêu chí thành công ở B0 (Recall ≥ 0,80, PR-AUC) là đề xuất, cần chốt sau khi có baseline ở B11.
 - [ ] Dòng `FAILED` thử nghiệm trong `ingestion_log`: giữ làm bằng chứng hay xóa trước khi demo.

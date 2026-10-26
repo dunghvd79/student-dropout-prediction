@@ -95,7 +95,7 @@ Word / Google Docs, PowerPoint / Google Slides, OBS (quay màn hình), Git.
 | Confidence và Lift khác nhau thế nào? | [B8](../GIAI_DOAN_C_PHAN_TICH_KHAI_PHA/B08_KHAI_PHA_DU_LIEU.md) |
 | Chống overfitting do dữ liệu lặp? Vì sao bỏ dòng Censored? | [B9](../GIAI_DOAN_D_HOC_MAY/B09_CHIA_TAP_DU_LIEU.md) |
 | Vì sao không SMOTE từ đầu? | [B10](../GIAI_DOAN_D_HOC_MAY/B10_TIEN_XU_LY_MAT_CAN_BANG.md) |
-| Vì sao chọn XGBoost / LightGBM? | [B11](../GIAI_DOAN_D_HOC_MAY/B11_HUAN_LUYEN_TINH_CHINH.md) |
+| Vì sao chọn Logistic Regression mà không phải XGBoost? Đặc trưng chiều dọc có giúp không? | [B11](../GIAI_DOAN_D_HOC_MAY/B11_HUAN_LUYEN_TINH_CHINH.md) |
 | Vì sao không dùng ngưỡng 0,5? | [B12](../GIAI_DOAN_D_HOC_MAY/B12_DANH_GIA_CHON_NGUONG.md) |
 | SHAP khác feature importance thế nào? | [B13](../GIAI_DOAN_D_HOC_MAY/B13_GIAI_THICH_MO_HINH_SHAP.md) |
 | Vì sao không làm API thời gian thực? | [B14](../GIAI_DOAN_E_TRIEN_KHAI_VAN_HANH/B14_DU_DOAN_THEO_LO.md) |

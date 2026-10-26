@@ -4,7 +4,7 @@
 ---
 
 ## 1. Nhiệm vụ
-Biến lịch sử nhiều kỳ của mỗi sinh viên thành các đặc trưng thể hiện **xu hướng** và **tích lũy**. Đây là **điểm khác biệt chính** của đề tài so với cách nhìn "ảnh chụp tĩnh" (snapshot).
+Biến lịch sử nhiều kỳ của mỗi sinh viên thành các đặc trưng thể hiện **xu hướng** và **tích lũy**, để kiểm tra **giả thuyết** của đề tài: nhìn theo quỹ đạo giúp dự báo tốt hơn cách nhìn "ảnh chụp tĩnh" (snapshot). Kết quả kiểm chứng ở [B11](../GIAI_DOAN_D_HOC_MAY/B11_HUAN_LUYEN_TINH_CHINH.md): giả thuyết **không đúng với bộ dữ liệu này** về độ chính xác, nhưng các đặc trưng vẫn có giá trị mô tả và giải thích.
 
 ---
 
@@ -105,7 +105,7 @@ Kỳ 1 không có kỳ trước, nên Lag/Delta không xác định. Có ba lự
 
 ## 8. Câu hỏi bảo vệ thường gặp
 **Hỏi:** Điểm mới của đề tài so với dự đoán bỏ học thông thường là gì?  
-**Đáp:** Nhóm không chỉ dùng giá trị hiện tại mà dùng **quỹ đạo**: mức sụt giảm GPA, chuyên cần, số môn nợ tích lũy, tốc độ sa sút. Ở B11 có thí nghiệm so sánh có/không có các đặc trưng này để chứng minh giá trị của chúng.
+**Đáp:** Nhóm xây dựng đặc trưng **quỹ đạo** (sụt giảm GPA, nợ môn tích lũy, tốc độ sa sút…) và **kiểm chứng** giá trị của chúng bằng ablation ở B11 (3 seed × 5 fold). Kết quả: chúng không tăng PR-AUC (0,4090 so với 0,4098) vì thông tin đã có trong trạng thái hiện tại; riêng chúng vẫn đạt 0,354. Điểm mới là nhóm **đo** giá trị của dữ liệu chiều dọc thay vì giả định, và dùng chúng cho mô tả / giải thích.
 
 **Hỏi:** Làm sao đảm bảo không dùng dữ liệu tương lai?  
 **Đáp:** Chỉ dùng `shift`, `cumsum`, `expanding`, `rolling` lùi trong từng sinh viên, và có unit test "xóa kỳ cuối, đặc trưng kỳ trước không đổi".

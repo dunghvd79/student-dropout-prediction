@@ -94,7 +94,7 @@ Notebook `notebooks/01_data_cleaning_eda.ipynb` (`pandas`, `seaborn`, `lifelines
 
 ## 7. Tiêu chí hoàn thành (đã kiểm tra 2026-10-26)
 - [x] Mỗi nhóm biến (học tập, hành vi, tài chính, nhân khẩu) có ít nhất 1 biểu đồ và 1 nhận xét.
-- [x] Có biểu đồ quỹ đạo chứng minh giá trị của dữ liệu theo chiều dọc (`eda_trajectory.png`, `eda_delta_cumulative.png`).
+- [x] Có biểu đồ quỹ đạo cho thấy xu hướng sa sút trước khi bỏ học (`eda_trajectory.png`, `eda_delta_cumulative.png`). Giá trị **dự báo** thêm của quỹ đạo được kiểm tra riêng ở B11 (kết quả: không tăng độ chính xác).
 - [x] Notebook chạy từ đầu đến cuối không lỗi; 8 biểu đồ nhúng trong notebook và lưu ra `reports/figures/`.
 
 ---
