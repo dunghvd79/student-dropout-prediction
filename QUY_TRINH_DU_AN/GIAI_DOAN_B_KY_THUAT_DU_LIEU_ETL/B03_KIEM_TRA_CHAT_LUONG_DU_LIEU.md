@@ -96,7 +96,8 @@ File thô từ MinIO (79.239 × 22).
 * Data contract tự động trong `src/etl/validate.py`, mỗi kiểm tra trả về một trong ba mức:
   * **OK:** sạch.
   * **WARN:** vấn đề đã biết, đã có cách xử lý ở B4 / B9 / B10; không chặn pipeline.
-  * **ERROR:** vi phạm contract, chặn pipeline (mã thoát 1). Gồm: thiếu > 10% ở một cột, > 1% giá trị ngoài miền, giá trị phân loại lạ, học kỳ đứt quãng, cột tĩnh bị đổi trong cùng sinh viên, logic nhãn sai.
+  * **ERROR:** vi phạm contract, chặn pipeline (mã thoát 1). Gồm: thiếu > 10% ở một cột, **thiếu ở cột không được phép thiếu** (chỉ `Family_Income` và `LMS_Logins` được phép, theo `NULLABLE_COLUMNS`), > 1% giá trị ngoài miền, giá trị phân loại lạ, học kỳ đứt quãng, cột tĩnh bị đổi trong cùng sinh viên, logic nhãn sai.
+  * Dòng trùng khóa `(Student_ID, Semester)` chỉ là **WARN** (B4 khử trùng, giữ bản cuối); các kiểm tra cấu trúc còn lại chạy trên dữ liệu đã khử trùng để lô nạp lại không bị báo nhầm ERROR.
 
 ## 6. Công cụ / File thực hiện
 * `src/etl/validate.py`: chạy `python -m src.etl.validate` (mặc định đọc lô `SUCCESS` mới nhất trong MinIO), hoặc `--file PATH` để kiểm tra một file trên máy, `--no-report` để chỉ in kết quả.

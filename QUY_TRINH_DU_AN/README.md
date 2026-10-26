@@ -167,7 +167,8 @@ Tich_Hop_pTich_DlieuLon/
 ├── config/
 │   ├── settings.yaml                      # B1: đường dẫn, random_state, ngưỡng rủi ro
 │   └── feature_spec.json                  # B7
-├── sql/schema.sql                         # B5
+├── sql/01_ingestion_log.sql               # B2
+├── sql/02_core_tables.sql                 # B5
 │
 ├── src/
 │   ├── core/          config.py, db.py, schema.py    # dùng chung

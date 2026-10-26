@@ -58,3 +58,12 @@ def test_md5_of_file(tmp_path):
     p = tmp_path / "a.csv"
     p.write_bytes(b"hello")
     assert md5_of_file(p) == hashlib.md5(b"hello").hexdigest()
+
+
+def test_connection_urls_escape_special_characters(monkeypatch):
+    from src.core import config
+
+    monkeypatch.setenv("POSTGRES_PASSWORD", "p@ss:w/rd")
+    monkeypatch.setenv("MONGO_PASSWORD", "p@ss:w/rd")
+    assert "p%40ss%3Aw%2Frd@" in config.postgres_url()
+    assert "p%40ss%3Aw%2Frd@" in config.mongo_url()

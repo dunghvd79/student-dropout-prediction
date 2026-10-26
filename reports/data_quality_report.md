@@ -1,5 +1,5 @@
 # BÁO CÁO CHẤT LƯỢNG DỮ LIỆU
-*Sinh tự động bởi `python -m src.etl.validate` lúc 2026-10-24 08:44. Xem phương pháp tại `QUY_TRINH_DU_AN/GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B03_KIEM_TRA_CHAT_LUONG_DU_LIEU.md`.*
+*Sinh tự động bởi `python -m src.etl.validate` lúc 2026-10-26 19:17. Xem phương pháp tại `QUY_TRINH_DU_AN/GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B03_KIEM_TRA_CHAT_LUONG_DU_LIEU.md`.*
 
 * **Nguồn:** `s3://raw/academic/ingest_date=2026-10-11/batch_id=20261011T085849Z_7df267/academic_survival_longitudinal.csv`
 * **batch_id:** `20261011T085849Z_7df267`
@@ -11,11 +11,11 @@
 | Kiểm tra | Trạng thái | Kết quả |
 |---|:---:|---|
 | Schema | ✅ OK | 79,239 dòng × 22 cột, đúng 22 cột theo src/core/schema.py |
+| Trùng khóa (Uniqueness) | ✅ OK | Không có dòng trùng (Student_ID, Semester) |
 | Giá trị thiếu (Completeness) | ⚠️ WARN | Family_Income: 3,604 (4.55%), LMS_Logins: 867 (1.09%) |
 | Miền giá trị (Validity) | ⚠️ WARN | Attendance: 249 dòng (0.31%) |
 | Thang đo Financial_Stress | ⚠️ WARN | 7,348 dòng > 5 (trung vị 2.1, P99 9.0, max 18.6). Tỷ lệ bỏ học tăng từ 5.3% (mức 1) lên 50.2% (mức ≥10), nên giá trị cao là tín hiệu thật: GIỮ NGUYÊN, không chặn về 5. |
 | Giá trị phân loại (Consistency) | ⚠️ WARN | Gender có 8 cách ghi cho 3 nhóm chuẩn |
-| Trùng khóa (Uniqueness) | ✅ OK | Không có dòng trùng (Student_ID, Semester) |
 | Tính liên tục học kỳ | ✅ OK | 20,000 sinh viên, 100% có học kỳ liên tục từ kỳ 1 (trung bình 3.96 kỳ) |
 | Cột tĩnh theo sinh viên | ✅ OK | 8 cột tĩnh không đổi trong cùng sinh viên |
 | Logic nhãn & dữ liệu bị cắt | ⚠️ WARN | Target=1 ⇔ Dropped_Out trên 100% dòng (rò rỉ nhãn: loại End_of_Semester_Status, Censored khỏi đặc trưng). 11,115 dòng Censored=1 có nhãn chưa xác nhận → tập chấm điểm. Tập có nhãn: 68,124 dòng, lớp bỏ học 10.2%. |
@@ -43,10 +43,10 @@
 
 Family_Income: 3,604 (4.55%), LMS_Logins: 867 (1.09%)
 
-|               |   so_dong_thieu |   ty_le_% |
-|:--------------|----------------:|----------:|
-| Family_Income |            3604 |      4.55 |
-| LMS_Logins    |             867 |      1.09 |
+|               |   so_dong_thieu |   ty_le_% | duoc_phep_thieu   |
+|:--------------|----------------:|----------:|:------------------|
+| Family_Income |            3604 |      4.55 | True              |
+| LMS_Logins    |             867 |      1.09 | True              |
 
 ### Miền giá trị (Validity)
 
@@ -171,6 +171,6 @@ Target=1 ⇔ Dropped_Out trên 100% dòng (rò rỉ nhãn: loại End_of_Semeste
 
 ![dq_financial_stress.png](figures/dq_financial_stress.png)
 
-**Family_Income lệch phải mạnh (3.000 → 488.000) → log1p cho mô hình tuyến tính**
+**Family_Income lệch phải mạnh (3,000 → 488,000) → log1p cho mô hình tuyến tính**
 
 ![dq_family_income.png](figures/dq_family_income.png)

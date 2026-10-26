@@ -32,14 +32,9 @@ def check_source_csv():
 
 
 def check_minio():
-    from minio import Minio
+    from src.core import db
 
-    client = Minio(
-        config.minio_endpoint(),
-        access_key=config.env("MINIO_ROOT_USER"),
-        secret_key=config.env("MINIO_ROOT_PASSWORD"),
-        secure=False,
-    )
+    client = db.minio_client()
     wanted = set(config.settings()["minio"]["buckets"].values())
     existing = {b.name for b in client.list_buckets()}
     missing = wanted - existing

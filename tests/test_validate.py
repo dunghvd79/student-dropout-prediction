@@ -112,3 +112,24 @@ def test_validate_stops_on_schema_error(df):
     raw = df.astype(str).drop(columns=["Sem_GPA"])
     results, typed = validate(raw)
     assert typed is None and results[0].status == "ERROR"
+
+
+def test_duplicate_rows_are_warn_not_error(df):
+    """Lô nạp lại có dòng trùng khóa: chỉ WARN (B4 khử trùng), không làm hỏng các kiểm tra khác."""
+    raw = pd.concat([df, df.iloc[[0, 1]]], ignore_index=True).astype(str)
+    results, _ = validate(raw)
+    status = {r.name: r.status for r in results}
+    assert status["Trùng khóa (Uniqueness)"] == "WARN"
+    assert "ERROR" not in status.values()
+
+
+def test_missing_in_non_nullable_column_is_error(df):
+    df = pd.concat([df] * 20, ignore_index=True)  # 140 dòng: 1 dòng thiếu < ngưỡng 10%
+    df.loc[0, "Age"] = None
+    assert check_missing(df).status == "ERROR"
+
+
+def test_missing_in_nullable_column_is_warn(df):
+    df = pd.concat([df] * 20, ignore_index=True)
+    df.loc[0, "Family_Income"] = None
+    assert check_missing(df).status == "WARN"

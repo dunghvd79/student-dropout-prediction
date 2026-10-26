@@ -3,6 +3,7 @@
 import os
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import quote_plus
 
 import yaml
 from dotenv import load_dotenv
@@ -34,7 +35,7 @@ def postgres_url(database: str | None = None) -> str:
     host = settings()["postgres"]["host"]
     db = database or env("POSTGRES_DB")
     return (
-        f"postgresql+psycopg2://{env('POSTGRES_USER')}:{env('POSTGRES_PASSWORD')}"
+        f"postgresql+psycopg2://{quote_plus(env('POSTGRES_USER'))}:{quote_plus(env('POSTGRES_PASSWORD'))}"
         f"@{host}:{env('POSTGRES_PORT', '5433')}/{db}"
     )
 
@@ -42,7 +43,7 @@ def postgres_url(database: str | None = None) -> str:
 def mongo_url() -> str:
     host = settings()["mongo"]["host"]
     return (
-        f"mongodb://{env('MONGO_USER')}:{env('MONGO_PASSWORD')}"
+        f"mongodb://{quote_plus(env('MONGO_USER'))}:{quote_plus(env('MONGO_PASSWORD'))}"
         f"@{host}:{env('MONGO_PORT', '27018')}/?authSource=admin"
     )
 

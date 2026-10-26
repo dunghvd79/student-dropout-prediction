@@ -27,7 +27,8 @@ from sqlalchemy import text  # noqa: E402
 from src.core import config, db  # noqa: E402
 from src.etl.ingest import check_schema  # noqa: E402
 from src.core.schema import (  # noqa: E402
-    COLUMNS, GENDER_MAP, HOUSING_VALUES, NUMERIC_KINDS, RANGES, STATIC_COLUMNS, STATUS_VALUES,
+    COLUMNS, GENDER_MAP, HOUSING_VALUES, NULLABLE_COLUMNS, NUMERIC_KINDS, RANGES, STATIC_COLUMNS,
+    STATUS_VALUES,
 )
 
 MISSING_MAX = 0.10       # tỷ lệ thiếu tối đa mỗi cột (khớp ngưỡng giám sát ở B16)
@@ -89,14 +90,19 @@ def check_missing(df: pd.DataFrame) -> CheckResult:
     n = df.isna().sum()
     table = pd.DataFrame({"so_dong_thieu": n, "ty_le_%": (n / len(df) * 100).round(2)})
     table = table[table["so_dong_thieu"] > 0].sort_values("so_dong_thieu", ascending=False)
+    table["duoc_phep_thieu"] = table.index.isin(NULLABLE_COLUMNS)
     too_high = table[table["ty_le_%"] > MISSING_MAX * 100]
+    not_allowed = table[~table["duoc_phep_thieu"]]
     summary = (
         "Không có giá trị thiếu" if table.empty
         else ", ".join(f"{c}: {int(r.so_dong_thieu):,} ({r['ty_le_%']}%)" for c, r in table.iterrows())
     )
     if not too_high.empty:
         summary += f". Vượt ngưỡng {MISSING_MAX:.0%}: {list(too_high.index)}"
-    return CheckResult("Giá trị thiếu (Completeness)", _status(not too_high.empty, not table.empty), summary, table)
+    if not not_allowed.empty:
+        summary += f". Cột không được phép thiếu: {list(not_allowed.index)}"
+    errors = not too_high.empty or not not_allowed.empty
+    return CheckResult("Giá trị thiếu (Completeness)", _status(errors, not table.empty), summary, table)
 
 
 def check_ranges(df: pd.DataFrame) -> CheckResult:
@@ -227,7 +233,7 @@ def check_label_logic(df: pd.DataFrame) -> CheckResult:
 
 DATA_CHECKS = [
     check_missing, check_ranges, check_financial_stress_scale, check_categories,
-    check_duplicates, check_semester_continuity, check_static_columns, check_label_logic,
+    check_semester_continuity, check_static_columns, check_label_logic,
 ]
 
 
@@ -237,7 +243,10 @@ def validate(raw: pd.DataFrame) -> tuple[list[CheckResult], pd.DataFrame | None]
         return [CheckResult("Schema", "ERROR", " | ".join(errors))], None
     df = to_typed(raw)
     results = [CheckResult("Schema", "OK", f"{len(df):,} dòng × {df.shape[1]} cột, đúng 22 cột theo src/core/schema.py")]
-    results += [check(df) for check in DATA_CHECKS]
+    # Trùng khóa là WARN (B4 khử trùng, giữ bản cuối) nên các kiểm tra còn lại chạy trên dữ liệu đã khử
+    # trùng; nếu không, một lô nạp lại có dòng trùng sẽ bị báo nhầm ERROR ở tính liên tục / logic nhãn.
+    deduped = df.drop_duplicates(subset=["Student_ID", "Semester"], keep="last")
+    results += [check_duplicates(df)] + [check(deduped) for check in DATA_CHECKS]
     return results, df
 
 
@@ -268,7 +277,8 @@ def make_figures(df: pd.DataFrame, fig_dir: Path) -> list[tuple[str, str]]:
         ax.axvline(x, color="#C44E52", ls="--")
     ax.set_xlabel("Attendance (%)")
     ax.set_ylabel("Số dòng")
-    save(fig, "dq_attendance.png", "Attendance: 249 dòng nằm ngoài [0, 100] (đường đỏ) → clip ở B4")
+    n_out = int(((df["Attendance"] < 0) | (df["Attendance"] > 100)).sum())
+    save(fig, "dq_attendance.png", f"Attendance: {n_out:,} dòng nằm ngoài [0, 100] (đường đỏ) → clip ở B4")
 
     labeled = df[df["Censored"] == 0]
     rate = labeled.groupby(labeled["Financial_Stress"].clip(upper=10).astype(int))["Target_Dropout_Next_Sem"].mean()
@@ -288,7 +298,9 @@ def make_figures(df: pd.DataFrame, fig_dir: Path) -> list[tuple[str, str]]:
     ax.set_xscale("log")
     ax.set_xlabel("Family_Income (thang log)")
     ax.set_ylabel("Số dòng")
-    save(fig, "dq_family_income.png", "Family_Income lệch phải mạnh (3.000 → 488.000) → log1p cho mô hình tuyến tính")
+    lo, hi = df["Family_Income"].min(), df["Family_Income"].max()
+    save(fig, "dq_family_income.png",
+         f"Family_Income lệch phải mạnh ({lo:,.0f} → {hi:,.0f}) → log1p cho mô hình tuyến tính")
     return figures
 
 

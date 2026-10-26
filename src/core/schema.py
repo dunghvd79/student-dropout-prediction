@@ -35,6 +35,9 @@ COLUMNS = {
 
 NUMERIC_KINDS = {"int", "float", "binary"}
 
+# Cột được phép thiếu (có quy trình điền ở B4/B10). Thiếu ở cột khác là vi phạm data contract.
+NULLABLE_COLUMNS = {"Family_Income", "LMS_Logins"}
+
 # Thuộc tính không đổi qua các kỳ của cùng một sinh viên (đã kiểm tra trên dữ liệu gốc)
 STATIC_COLUMNS = [
     "Age", "Gender", "First_Generation", "Family_Income",
