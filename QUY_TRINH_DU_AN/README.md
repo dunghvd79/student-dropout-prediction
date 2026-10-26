@@ -165,7 +165,7 @@ Tich_Hop_pTich_DlieuLon/
 ├── requirements.txt                       # B1
 ├── .env.example                           # B1
 ├── config/
-│   ├── settings.yaml                      # B1: đường dẫn, random_state, ngưỡng rủi ro
+│   ├── settings.yaml                      # B1: đường dẫn, random_state, chính sách ngưỡng (mốc cụ thể: risk_thresholds.json, B12)
 │   └── feature_spec.json                  # B7
 ├── sql/01_ingestion_log.sql               # B2
 ├── sql/02_core_tables.sql                 # B5

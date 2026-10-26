@@ -111,7 +111,8 @@ class Tracker:
         cfg = config.settings()["mlflow"]
         mlflow.set_tracking_uri(cfg["tracking_uri"])
         mlflow.set_experiment(cfg["experiment"])
-        self.tags = {"data_md5": _data_md5(), "git_commit": _git_commit(), "cv": "StratifiedGroupKFold(5)"}
+        # leaky = false: phân biệt với 19 run của lần chạy có rò rỉ Income_Missing (gắn leaky = true ở B13)
+        self.tags = {"data_md5": _data_md5(), "git_commit": _git_commit(), "cv": "StratifiedGroupKFold(5)", "leaky": "false"}
 
     def log(self, stage: str, result: CVResult, artifacts: list | None = None) -> str | None:
         if not self.enabled:

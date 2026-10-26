@@ -271,7 +271,7 @@ def register(model, res, X_example) -> str:
     mlflow.set_tracking_uri(cfg["tracking_uri"])
     mlflow.set_experiment(cfg["experiment"])
     with mlflow.start_run(run_name="final-logreg-test") as run:
-        mlflow.set_tags({"stage": "final", "test_runs": str(res["test_runs"]),
+        mlflow.set_tags({"stage": "final", "leaky": "false", "test_runs": str(res["test_runs"]),
                          "rerun_reason": res["history"][-1]["rerun_reason"] if res.get("history") else ""})
         mlflow.log_params({"model": "logreg", "imbalance": FINAL_IMBALANCE, "C": res["config"]["params"]["C"],
                            "n_features": res["n_features"], "threshold_medium": res["thresholds"]["medium"],

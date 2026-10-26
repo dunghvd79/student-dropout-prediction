@@ -1,5 +1,5 @@
 # TIẾN ĐỘ DỰ ÁN
-**Cập nhật lần cuối:** 2026-10-26 · **Commit mới nhất:** `Buoc 13: giai thich SHAP, sua ro ri Income_Missing`  
+**Cập nhật lần cuối:** 2026-10-26 · **Commit mới nhất:** `Buoc 14: du doan theo lo`  
 **Quy trình chi tiết:** [`QUY_TRINH_DU_AN/`](./QUY_TRINH_DU_AN/README.md)
 
 > Cập nhật file này mỗi khi xong một bước: đổi trạng thái, ghi commit, thêm quyết định / vấn đề mới.
@@ -24,12 +24,12 @@
 | | B11 Huấn luyện & tinh chỉnh | ✅ Xong |
 | | B12 Đánh giá & chọn ngưỡng | ✅ Xong |
 | | B13 Giải thích SHAP | ✅ Xong |
-| **E – Triển khai & Vận hành** | B14 Dự đoán theo lô | ⏭️ **Làm tiếp theo** |
-| | B15 Dashboard | ⬜ Chưa làm |
+| **E – Triển khai & Vận hành** | B14 Dự đoán theo lô | ✅ Xong |
+| | B15 Dashboard | ⏭️ **Làm tiếp theo** |
 | | B16 Giám sát & vận hành | ⬜ Chưa làm |
 | **F – Kết thúc** | B17 Báo cáo & bảo vệ | ⬜ Chưa làm |
 
-**Hoàn thành: 14 / 18 bước** (Giai đoạn A, B, C, D xong).
+**Hoàn thành: 15 / 18 bước** (Giai đoạn A, B, C, D xong; Giai đoạn E: 1/3).
 
 ---
 
@@ -143,18 +143,25 @@
 * Sau khi sửa, XGBoost nhỉnh hơn LogReg 0,003 (có ý nghĩa thống kê, ~0,7%) → **nhóm chọn giữ LogReg**.
 * Hệ số ngược dấu được liệt kê tự động: lần đầu `GPA_Roll3`; hiện tại `Work_prev` / `Work_Hours`.
 * 9 test mới (`test_explain.py`) + test B4 / B5 cho thu nhập đúng thời điểm; tổng 112/112 đạt. Notebook 01, 02, 04 chạy lại, 0 lỗi.
+* Sau commit: giữ 19 run có rò rỉ + `dropout_model` v1 trên MLflow, gắn tag `leaky = true`; run mới tự gắn `leaky = false` (gộp vào commit B14).
+
+### B14 – Dự đoán theo lô ✅ (commit `Buoc 14`)
+* `python -m src.ml.predict`: tải `dropout_model@production` (v2) từ MLflow → chấm 11.115 sinh viên đang theo học → `risk_score`, `risk_level` (mốc `config/risk_thresholds.json`), 3 lý do (`explain()` + `top_reasons()`) → upsert PostgreSQL `predictions` theo `(run_id, student_id)` → đối soát → `reports/scoring_report.md`.
+* **Kiểm tra schema trước khi dự đoán** (chống training–serving skew): khớp `feature_spec.json` và cột mô hình đã học, kiểu số, nhị phân 0/1, không có nhóm phân loại lạ. Sai thì dừng, không ghi.
+* Kết quả `run_id = 20261026-v2`: Cao 439 (3,9%), Trung bình 3.978 (35,8%), Thấp 6.698 (60,3%); xác suất TB 8,9%; rủi ro tăng theo kỳ (6,1% → 10,7%). Lý do số 1 ở mức Cao: học tập 48,5%, trượt môn 33,7%, tài chính 16,9%.
+* 6/6 kiểm tra đạt; 15 – 22 giây (< 2 phút); chạy lại cùng `run_id` 3 lần vẫn 11.115 dòng; `--local` (joblib) cho cùng kết quả với Registry.
+* 6 test mới (`test_predict.py`); tổng 118/118 đạt.
 
 ---
 
-## 3. Việc tiếp theo: B14 – Dự đoán theo lô (Batch Scoring)
+## 3. Việc tiếp theo: B15 – Trực quan hóa & Dashboard
 
-Chi tiết: [`B14_DU_DOAN_THEO_LO.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_E_TRIEN_KHAI_VAN_HANH/B14_DU_DOAN_THEO_LO.md)
+Chi tiết: [`B15_TRUC_QUAN_HOA_DASHBOARD.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_E_TRIEN_KHAI_VAN_HANH/B15_TRUC_QUAN_HOA_DASHBOARD.md)
 
-- [ ] Tải mô hình từ `models:/dropout_model@production`; chấm 11.115 dòng scoring set (`Censored = 1`).
-- [ ] Kiểm tra schema đặc trưng khớp `feature_spec.json` trước khi dự đoán.
-- [ ] Mức rủi ro theo `config/risk_thresholds.json` (không đọc mốc cứng trong settings).
-- [ ] Lý do bằng `explain()` + `top_reasons()` (nền SHAP = Train); ghi `predictions` (upsert theo `(run_id, student_id)`), kèm `model_version`.
-- [ ] Kiểm tra: không có `risk_score` NULL; phân bố mức rủi ro hợp lý.
+- [ ] View / bảng tổng hợp trong PostgreSQL cho Power BI (ví dụ `semester_summary`, view ghép `predictions` + `students` + `student_clusters` theo `run_id` mới nhất).
+- [ ] Power BI (4 trang: tổng quan, phân bổ rủi ro, danh sách cảnh báo đỏ kèm 3 lý do, xu hướng). Cần Power BI Desktop trên máy Windows; file `.pbix` do nhóm tự dựng theo view đã chuẩn bị.
+- [ ] Streamlit: tra cứu `Student_ID` → hồ sơ, quỹ đạo các kỳ (MongoDB), `risk_score`, waterfall SHAP theo nhóm + gợi ý can thiệp theo lý do; trang luật kết hợp và hồ sơ cụm.
+- [ ] Mức Cao chỉ nêu lý do thuộc nhóm can thiệp được (đã bảo đảm ở `top_reasons()`).
 
 ---
 
@@ -170,7 +177,7 @@ Chi tiết: [`B14_DU_DOAN_THEO_LO.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_E_TRIEN_KHAI_
 
 **Dữ liệu đang có trong hệ thống:**
 * MinIO `raw`: 1 object (lô `20261011T085849Z_7df267`). MinIO `processed`: `academic/batch_id=20261011T085849Z_7df267/clean_semesters.parquet`.
-* PostgreSQL `dropout_ews`: `ingestion_log` 3 dòng (1 `SUCCESS`, 1 `SKIPPED` khi chạy lại, 1 `FAILED` từ file hỏng dùng để thử); `students` 20.000; `financial_profiles` 20.000; `predictions` rỗng.
+* PostgreSQL `dropout_ews`: `ingestion_log` 3 dòng (1 `SUCCESS`, 1 `SKIPPED` khi chạy lại, 1 `FAILED` từ file hỏng dùng để thử); `students` 20.000; `financial_profiles` 20.000; `predictions` 11.115 dòng (1 lần chạy, `run_id = 20261026-v2`).
 * MongoDB `dropout_ews.academic_semesters`: 79.239 document, unique index `(student_id, semester)`.
 * PostgreSQL `student_clusters`: 20.000 dòng (B8).
 * Trên máy (không commit, tạo lại bằng script): `data/processed/clean_semesters.parquet` (B4), `data/features/feature_table.parquet` (B7), `data/splits/test_student_ids.csv` + `split_summary.json` (B9).
@@ -208,7 +215,7 @@ Chi tiết: [`B14_DU_DOAN_THEO_LO.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_E_TRIEN_KHAI_
 docker compose up -d          # bật lại MinIO, PostgreSQL, MongoDB, MLflow
 .venv\Scripts\activate
 python -m src.ops.check_env       # phải báo "Tất cả đều sẵn sàng"
-python -m pytest              # 112/112 đạt
+python -m pytest              # 118/118 đạt
 ```
 
 * Muốn giải phóng RAM khi không làm: `docker compose stop` (dữ liệu vẫn giữ trong volume).
@@ -221,5 +228,5 @@ python -m pytest              # 112/112 đạt
 - [x] **Cách trình bày "điểm độc đáo":** đã sửa README, PROJECT_OVERVIEW, B06, B07, B11, B17, THIET_KE_PIPELINE theo hướng "quỹ đạo giúp mô tả / giải thích, đã kiểm chứng là không tăng độ chính xác"; bổ sung kiểm chứng độ vững. Nhóm nên đọc lại trước khi bảo vệ.
 - [ ] Các thành viên khác chưa thử dựng lại môi trường trên máy của mình (tiêu chí cuối của B1).
 - [x] Tiêu chí thành công ở B0: đạt (Recall Test 0,820 tại mốc Trung bình; PR-AUC 0,391 so với mốc 0,10; giải thích từng sinh viên bằng SHAP ở B13).
-- [ ] MLflow còn các run của lần chạy đầu (có rò rỉ) và `dropout_model` v1: giữ làm lịch sử hay xóa trước khi demo.
+- [x] MLflow: **giữ** 19 run của lần chạy có rò rỉ và `dropout_model` v1 làm lịch sử, gắn tag `leaky = true` + ghi chú; run mới và v2 có `leaky = false` (`experiments.py`, `evaluate.py` tự gắn). Khi demo lọc `tags.leaky = 'false'`; khi được hỏi về rò rỉ thì so v1 với v2.
 - [ ] Dòng `FAILED` thử nghiệm trong `ingestion_log`: giữ làm bằng chứng hay xóa trước khi demo.
