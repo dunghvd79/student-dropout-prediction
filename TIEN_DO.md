@@ -1,5 +1,5 @@
 # TIẾN ĐỘ DỰ ÁN
-**Cập nhật lần cuối:** 2026-10-24 · **Commit mới nhất:** "Buoc 4: lam sach du lieu" (xem `git log`)  
+**Cập nhật lần cuối:** 2026-10-26 · **Commit mới nhất:** "Buoc 5: nap kho Polyglot" (xem `git log`)  
 **Quy trình chi tiết:** [`QUY_TRINH_DU_AN/`](./QUY_TRINH_DU_AN/README.md)
 
 > Cập nhật file này mỗi khi xong một bước: đổi trạng thái, ghi commit, thêm quyết định / vấn đề mới.
@@ -15,8 +15,8 @@
 | **B – Kỹ thuật dữ liệu (ETL)** | B2 Nạp dữ liệu thô vào MinIO | ✅ Xong |
 | | B3 Kiểm tra chất lượng dữ liệu | ✅ Xong |
 | | B4 Làm sạch dữ liệu | ✅ Xong |
-| | B5 Nạp kho Polyglot | ⏭️ **Làm tiếp theo** |
-| **C – Phân tích & Khai phá** | B6 EDA | ⬜ Chưa làm |
+| | B5 Nạp kho Polyglot | ✅ Xong |
+| **C – Phân tích & Khai phá** | B6 EDA | ⏭️ **Làm tiếp theo** |
 | | B7 Trích xuất đặc trưng | ⬜ Chưa làm |
 | | B8 Khai phá dữ liệu | ⬜ Chưa làm |
 | **D – Học máy** | B9 Chia tập | ⬜ Chưa làm |
@@ -29,7 +29,7 @@
 | | B16 Giám sát & vận hành | ⬜ Chưa làm |
 | **F – Kết thúc** | B17 Báo cáo & bảo vệ | ⬜ Chưa làm |
 
-**Hoàn thành: 5 / 18 bước** (Giai đoạn A xong; Giai đoạn B: 3/4).
+**Hoàn thành: 6 / 18 bước** (Giai đoạn A và B xong).
 
 ---
 
@@ -63,19 +63,33 @@
 * 7/7 kiểm tra sau làm sạch đạt; chạy 2 lần cho file Parquet giống hệt (MD5 `deacca08…`); file hỏng bị chặn. 31/31 unit test đạt.
 * File: `src/etl/clean.py`, `tests/test_clean.py`, `reports/cleaning_log.md`.
 
+### B5 – Nạp kho Polyglot ✅ (commit "Buoc 5: nap kho Polyglot")
+* `python -m src.etl.load`: PostgreSQL `students` 20.000, `financial_profiles` 20.000 (+ `predictions` rỗng); MongoDB `academic_semesters` 79.239 document, unique index `(student_id, semester)`.
+* 5/5 đối soát đạt; chạy 2 lần số lượng không đổi; `load_analytic_table()` ghép lại giống hệt `clean_semesters.parquet`. 34/34 unit test đạt.
+* File: `src/etl/load.py`, `sql/02_core_tables.sql`, `tests/test_load.py`.
+
+### Rà soát B1 – B5 (2026-10-26)
+* **Lỗi code đã sửa** (đều có test hồi quy):
+  1. Lô nạp lại có dòng trùng khóa bị báo nhầm ERROR ở "tính liên tục học kỳ" và "logic nhãn" → các kiểm tra chạy trên dữ liệu đã khử trùng; trùng khóa chỉ là WARN.
+  2. Thiếu giá trị ở cột không được phép thiếu (ví dụ `Age`) vẫn qua data contract nhưng làm `clean.py` lỗi → thêm `NULLABLE_COLUMNS`, thiếu ở cột khác là ERROR.
+  3. Mật khẩu có ký tự đặc biệt (`@ : /`) làm hỏng chuỗi kết nối PostgreSQL / MongoDB → mã hóa bằng `quote_plus`.
+  4. Chú thích biểu đồ trong báo cáo chất lượng ghi cứng số liệu (249 dòng, 3.000 → 488.000) → tính từ dữ liệu của lô.
+* **Tài liệu đã sửa:** đường dẫn `sql/schema.sql` → `sql/01_…`, `sql/02_…`; Giai đoạn A ghi "5 dịch vụ" → 4; mục "Dữ liệu đang có" ở trên.
+* **Giới hạn đã biết (chưa xử lý):** `load.py` chỉ upsert, không xóa sinh viên / document không còn trong lô mới. Đủ cho dữ liệu hiện tại (một lô); cần thêm bước dọn khi có nhiều lô.
+* Chạy lại toàn bộ trên dữ liệu thật: kết quả không đổi (hash dữ liệu sạch `d0f62efcf08dc468`, 5/5 đối soát B5 đạt). 38/38 unit test đạt.
+
 ---
 
-## 3. Việc tiếp theo: B5 – Nạp kho Polyglot
+## 3. Việc tiếp theo: B6 – Phân tích khám phá (EDA)
 
-Chi tiết: [`B05_NAP_KHO_POLYGLOT.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B05_NAP_KHO_POLYGLOT.md)
+Chi tiết: [`B06_PHAN_TICH_KHAM_PHA_EDA.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_C_PHAN_TICH_KHAI_PHA/B06_PHAN_TICH_KHAM_PHA_EDA.md)
 
-- [ ] `sql/02_core_tables.sql`: bảng `students`, `financial_profiles`, `predictions` (IF NOT EXISTS).
-- [ ] `src/etl/load.py`: đọc `clean_semesters.parquet` → `students` (20.000), `financial_profiles` (20.000) bằng upsert; MongoDB `academic_semesters` (79.239 document lồng nhau) bằng `bulk_write` + unique index `(student_id, semester)`.
-- [ ] Đối soát số lượng; mọi `student_id` trong MongoDB có trong `students`; chạy lại lần 2 số lượng không đổi.
-- [ ] Hàm `load_analytic_table()` trả về dữ liệu giống hệt `clean_semesters.parquet`.
-- [ ] Unit test cho phần chuyển dòng → document.
-
-Sau B5: hoàn tất Giai đoạn B, chuyển sang Giai đoạn C (B6 EDA).
+- [ ] Notebook `notebooks/01_data_cleaning_eda.ipynb`: đọc dữ liệu bằng `load_analytic_table()`.
+- [ ] Mất cân bằng nhãn; phân bố số kỳ; tỷ lệ bỏ học theo học kỳ và theo nhóm (`First_Generation`, `Scholarship`, `Housing_Status`, `Financial_Stress`), tính trên tập có nhãn (`Censored = 0`).
+- [ ] Phân phối các biến chính tách theo nhãn; ma trận tương quan Spearman.
+- [ ] Biểu đồ quỹ đạo GPA / chuyên cần / áp lực tài chính theo học kỳ (nhóm sắp bỏ học so với nhóm ở lại).
+- [ ] (Tùy chọn) Kaplan–Meier.
+- [ ] 5 – 10 insight + danh sách giả thuyết đặc trưng cho B7; lưu biểu đồ `reports/figures/eda_*.png`.
 
 ---
 
@@ -90,8 +104,10 @@ Sau B5: hoàn tất Giai đoạn B, chuyển sang Giai đoạn C (B6 EDA).
 | MLflow | 2.19.0 | http://localhost:5000 |
 
 **Dữ liệu đang có trong hệ thống:**
-* MinIO `raw`: 1 object (lô `20261011T085849Z_7df267`).
-* PostgreSQL `ingestion_log`: 3 dòng (1 `SUCCESS`, 1 `SKIPPED` khi chạy lại, 1 `FAILED` từ file hỏng dùng để thử).
+* MinIO `raw`: 1 object (lô `20261011T085849Z_7df267`). MinIO `processed`: `academic/batch_id=20261011T085849Z_7df267/clean_semesters.parquet`.
+* PostgreSQL `dropout_ews`: `ingestion_log` 3 dòng (1 `SUCCESS`, 1 `SKIPPED` khi chạy lại, 1 `FAILED` từ file hỏng dùng để thử); `students` 20.000; `financial_profiles` 20.000; `predictions` rỗng.
+* MongoDB `dropout_ews.academic_semesters`: 79.239 document, unique index `(student_id, semester)`.
+* Trên máy: `data/processed/clean_semesters.parquet` (không commit, tạo lại bằng `python -m src.etl.clean`).
 * MLflow: experiment `_smoke_test` đã xóa (chỉ dùng để thử ghi artifact).
 
 ---
@@ -118,7 +134,7 @@ Sau B5: hoàn tất Giai đoạn B, chuyển sang Giai đoạn C (B6 EDA).
 docker compose up -d          # bật lại MinIO, PostgreSQL, MongoDB, MLflow
 .venv\Scripts\activate
 python -m src.ops.check_env       # phải báo "Tất cả đều sẵn sàng"
-python -m pytest              # 31/31 đạt
+python -m pytest              # 38/38 đạt
 ```
 
 * Muốn giải phóng RAM khi không làm: `docker compose stop` (dữ liệu vẫn giữ trong volume).

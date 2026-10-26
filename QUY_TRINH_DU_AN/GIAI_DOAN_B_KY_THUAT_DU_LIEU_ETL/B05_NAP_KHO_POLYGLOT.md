@@ -65,7 +65,7 @@ Tách dữ liệu sạch thành **phần tĩnh** (PostgreSQL) và **phần biế
 ---
 
 ## 4. Biến đổi
-1. **Tạo schema** bằng `sql/schema.sql`:
+1. **Tạo schema** bằng `sql/02_core_tables.sql` (bảng `ingestion_log` đã tạo ở B2 bằng `sql/01_ingestion_log.sql`):
    ```sql
    CREATE TABLE IF NOT EXISTS students (
      student_id       VARCHAR(15) PRIMARY KEY,
@@ -111,17 +111,25 @@ Tách dữ liệu sạch thành **phần tĩnh** (PostgreSQL) và **phần biế
 ---
 
 ## 5. Output
-* PostgreSQL: `students` (20.000), `financial_profiles` (20.000), `predictions` (rỗng), `ingestion_log`.
-* MongoDB: `academic_semesters` (79.239 document).
-* Hàm `load_analytic_table()` trong `src/etl/load.py`.
+* PostgreSQL (`sql/02_core_tables.sql`): `students` (20.000), `financial_profiles` (20.000), `predictions` (rỗng, dùng ở B14), cùng `ingestion_log` từ B2. Hai bảng nghiệp vụ có thêm cột `updated_at`.
+* MongoDB: `academic_semesters` (79.239 document) + unique index `uniq_student_semester` trên `(student_id, semester)`.
+* Hàm `load_analytic_table()` trong `src/etl/load.py`: đọc 2 CSDL, làm phẳng document, ghép theo `student_id` → bảng 79.239 × 24 **giống hệt** `clean_semesters.parquet` (kể cả kiểu dữ liệu).
 
 ## 6. Công cụ / File thực hiện
-`src/etl/load.py`, `sql/schema.sql` (`sqlalchemy`, `psycopg2`, `pymongo`).
+* `src/etl/load.py`: chạy `python -m src.etl.load [--file PATH]`.
+  * PostgreSQL: ghi vào bảng tạm rồi `INSERT … ON CONFLICT (student_id) DO UPDATE`, cả hai bảng trong **một transaction** (lỗi giữa chừng thì rollback cả hai).
+  * MongoDB: `bulk_write` với `ReplaceOne(..., upsert=True)`, mỗi lô 5.000 document.
+  * Cuối mỗi lần chạy tự đối soát 5 mục (in `[OK]` / `[LỖI]`, mã thoát 1 nếu có lỗi).
+* `tests/test_load.py`: 3 unit test (tách bảng tĩnh, cấu trúc document, chuyển dòng → document → dòng không mất thông tin).
+* Kiểu dữ liệu: cờ 0/1 lưu thành `BOOLEAN` ở PostgreSQL; số tiền lưu `NUMERIC`; giá trị thiếu (`family_income`, `lms_logins`) lưu `NULL` / `null`.
 
-## 7. Tiêu chí hoàn thành
-- [ ] Số lượng khớp 20.000 / 20.000 / 79.239.
-- [ ] Chạy lại lần 2 số lượng không đổi.
-- [ ] `load_analytic_table()` trả về dữ liệu giống hệt `clean_semesters.parquet`.
+## 7. Tiêu chí hoàn thành (đã kiểm tra 2026-10-26)
+- [x] Số lượng khớp 20.000 / 20.000 / 79.239.
+- [x] Mọi `student_id` trong MongoDB có trong `students` (khớp 100%).
+- [x] Chạy lại lần 2: số lượng không đổi (0 document thêm mới, 79.239 document được ghi đè cùng nội dung). `modified_count` của `replaceOne` luôn tính cả khi nội dung không đổi, nên không dùng làm thước đo.
+- [x] `load_analytic_table()` trả về dữ liệu giống hệt `clean_semesters.parquet`.
+- [x] `family_income` NULL đúng 199 sinh viên, khớp `income_missing = TRUE`. Document kỳ 5 của `STU_00001` khớp ví dụ trong `BAO_CAO_CSDL_GIUA_KY.md`.
+- Thời gian chạy: khoảng 17 giây cho cả nạp và đối soát.
 
 ---
 
