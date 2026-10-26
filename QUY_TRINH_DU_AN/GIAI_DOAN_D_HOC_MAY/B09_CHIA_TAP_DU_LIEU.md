@@ -62,15 +62,31 @@ Cố định `random_state = 42` và **lưu danh sách `Student_ID` của tập 
 ---
 
 ## 5. Output
-* `X_train, y_train, groups_train`, `X_test, y_test`, `X_score` (+ khóa).
-* `data/splits/test_student_ids.csv`.
+* `data/splits/test_student_ids.csv`: 3.604 `Student_ID` của tập Test. Đây là "nguồn sự thật" của cách chia; các bước sau gọi `load_splits()` để dựng lại đúng cách chia này, không chia lại.
+* `data/splits/split_summary.json`: số dòng, số sinh viên, tỷ lệ lớp dương của từng tập.
+* Đối tượng `Splits`: `X_train, y_train, groups_train`, `X_test, y_test, groups_test`, `X_score` + khóa `(Student_ID, Semester)` của từng tập.
+
+**Kết quả thực tế:**
+
+| Tập | Số dòng | Số sinh viên | Dòng bỏ học | Tỷ lệ |
+|---|---:|---:|---:|---:|
+| Train | 54.474 | 14.324 | 5.493 | 10,08% |
+| Test | 13.650 | 3.604 | 1.424 | 10,43% |
+| Scoring (`Censored = 1`) | 11.115 | 11.115 | – | – |
+
+* X gồm 43 đặc trưng theo `config/feature_spec.json`.
+* CV 5 fold trên Train: tỷ lệ lớp dương mỗi fold 9,70% – 10,58%.
+* Sinh viên trong Scoring set: 7.257 có các kỳ trước nằm ở Train, 1.786 ở Test, 2.072 chỉ có đúng 1 kỳ (bị cắt ngay kỳ 1). Điều này hợp lệ: Scoring set chỉ dùng để chấm điểm ở B14, không dùng để đánh giá mô hình.
 
 ## 6. Công cụ / File thực hiện
-`src/ml/train.py` (hàm `make_splits`), notebook `04_machine_learning_models.ipynb` (`scikit-learn`).
+* `src/ml/split.py`: chạy `python -m src.ml.split` (~16 giây). Gồm `make_splits()` (chia và lưu), `load_splits()` (dựng lại), `cv_splitter()` (`StratifiedGroupKFold(5)` cho B11), `check_splits()`. Tách khỏi `train.py` để B10 – B14 dùng chung.
+* `tests/test_split.py`: 7 unit test.
 
-## 7. Tiêu chí hoàn thành
-- [ ] Các kiểm tra ở mục 4.5 đều đạt (có `assert` trong code).
-- [ ] Chạy lại cho ra đúng cùng một cách chia.
+## 7. Tiêu chí hoàn thành (đã kiểm tra 2026-10-26)
+- [x] Giao `Student_ID` Train và Test = ∅ (cũng kiểm tra cho từng cặp fold CV).
+- [x] Tỷ lệ Test = 20,0% số dòng; tỷ lệ lớp dương Train 10,08% và Test 10,43%.
+- [x] Không có cột rò rỉ (`End_of_Semester_Status`, `Censored`, nhãn, `Student_ID`) trong X.
+- [x] Chạy lại cho ra đúng cùng một cách chia; `load_splits()` dựng lại khớp với `make_splits()`.
 
 ---
 

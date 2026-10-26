@@ -104,7 +104,7 @@ GIAI ĐOẠN F – KẾT THÚC
 | [**B4**](./GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B04_LAM_SACH_DU_LIEU.md) | Làm sạch | File thô + quyết định B3 | Khử trùng lặp, chuẩn hóa, clip, điền khuyết | `clean_semesters.parquet` (79.239 × 24) |
 | [**B5**](./GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B05_NAP_KHO_POLYGLOT.md) | Nạp kho Polyglot | Dữ liệu sạch | Tách bảng tĩnh / document học kỳ, upsert | `students`, `financial_profiles` (20.000), `academic_semesters` (79.239) |
 | [**B6**](./GIAI_DOAN_C_PHAN_TICH_KHAI_PHA/B06_PHAN_TICH_KHAM_PHA_EDA.md) | EDA | Bảng ghép từ 2 CSDL | Thống kê, biểu đồ, tương quan, quỹ đạo | Biểu đồ + danh sách insight |
-| [**B7**](./GIAI_DOAN_C_PHAN_TICH_KHAI_PHA/B07_TRICH_XUAT_DAC_TRUNG.md) | Feature Engineering | Dữ liệu sạch đã sắp xếp | Lag, Delta, Cumulative, Rolling, chỉ số tài chính | `feature_table.parquet` (79.239 × ~45) |
+| [**B7**](./GIAI_DOAN_C_PHAN_TICH_KHAI_PHA/B07_TRICH_XUAT_DAC_TRUNG.md) | Feature Engineering | Dữ liệu sạch đã sắp xếp | Lag, Delta, Cumulative, Rolling, chỉ số tài chính | `feature_table.parquet` (79.239 × 47; 43 đặc trưng) |
 | [**B8**](./GIAI_DOAN_C_PHAN_TICH_KHAI_PHA/B08_KHAI_PHA_DU_LIEU.md) | Data Mining | Bảng đặc trưng | K-Means; rời rạc hóa + Apriori | Nhãn cụm, bảng luật kết hợp |
 | [**B9**](./GIAI_DOAN_D_HOC_MAY/B09_CHIA_TAP_DU_LIEU.md) | Chia tập | Bảng đặc trưng | Bỏ cột rò rỉ, tách Censored, chia theo nhóm | Train / Test / Scoring set |
 | [**B10**](./GIAI_DOAN_D_HOC_MAY/B10_TIEN_XU_LY_MAT_CAN_BANG.md) | Tiền xử lý mô hình | Train set | Imputer, Scaler, One-Hot, trọng số lớp | `sklearn Pipeline` (chưa fit) |
@@ -143,10 +143,10 @@ GIAI ĐOẠN F – KẾT THÚC
 | `clean_semesters.parquet` | B4 | `data/processed/`, MinIO `processed/` | 79.239 × 24 | B5, B7 |
 | `students`, `financial_profiles` | B5 | PostgreSQL | 20.000 dòng mỗi bảng | B6, B15 |
 | `academic_semesters` | B5 | MongoDB | 79.239 document | B6, B15 |
-| `feature_table.parquet` + `feature_spec.json` | B7 | `data/features/`, `config/` | 79.239 × ~45 | B8, B9, B14 |
+| `feature_table.parquet` + `feature_spec.json` | B7 | `data/features/`, `config/` | 79.239 × 47 (43 đặc trưng) | B8, B9, B14 |
 | `student_clusters` | B8A | PostgreSQL | 20.000 | B15 |
 | `association_rules.csv` | B8B | `reports/` | top 10 – 20 luật | B15, B17 |
-| Train / Test / Scoring | B9 | Bộ nhớ + `data/splits/` | ~54.500 / ~13.600 / 11.115 | B10 – B14 |
+| Train / Test / Scoring | B9 | `data/splits/test_student_ids.csv` + `load_splits()` | 54.474 / 13.650 / 11.115 dòng | B10 – B14 |
 | MLflow runs, `dropout_model` | B11 – B12 | MLflow (PostgreSQL + MinIO) | – | B14, B16 |
 | `predictions` | B14 | PostgreSQL | 11.115 / lần chạy | B15, B16 |
 | `pipeline_runs` | B16 | PostgreSQL | 1 dòng / lần chạy | B16 |
@@ -175,7 +175,7 @@ Tich_Hop_pTich_DlieuLon/
 │   ├── core/          config.py, db.py, schema.py    # dùng chung
 │   ├── etl/           ingest.py (B2), validate.py (B3), clean.py (B4), load.py (B5)
 │   ├── analysis/      features.py (B7), mining.py (B8)
-│   ├── ml/            train.py (B9 – B12), explain.py (B13), predict.py (B14)
+│   ├── ml/            split.py (B9), train.py (B10 – B12), explain.py (B13), predict.py (B14)
 │   └── ops/           check_env.py (B1), monitor.py, run_pipeline.py (B16)
 ├── tests/                                 # pytest
 │

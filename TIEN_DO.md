@@ -1,5 +1,5 @@
 # TIẾN ĐỘ DỰ ÁN
-**Cập nhật lần cuối:** 2026-10-26 · **Commit mới nhất:** "Buoc 8: khai pha du lieu" (xem `git log`)  
+**Cập nhật lần cuối:** 2026-10-26 · **Commit mới nhất:** "Buoc 9: chia tap du lieu" (xem `git log`)  
 **Quy trình chi tiết:** [`QUY_TRINH_DU_AN/`](./QUY_TRINH_DU_AN/README.md)
 
 > Cập nhật file này mỗi khi xong một bước: đổi trạng thái, ghi commit, thêm quyết định / vấn đề mới.
@@ -19,8 +19,8 @@
 | **C – Phân tích & Khai phá** | B6 EDA | ✅ Xong |
 | | B7 Trích xuất đặc trưng | ✅ Xong |
 | | B8 Khai phá dữ liệu | ✅ Xong |
-| **D – Học máy** | B9 Chia tập | ⏭️ **Làm tiếp theo** |
-| | B10 Tiền xử lý & mất cân bằng | ⬜ Chưa làm |
+| **D – Học máy** | B9 Chia tập | ✅ Xong |
+| | B10 Tiền xử lý & mất cân bằng | ⏭️ **Làm tiếp theo** |
 | | B11 Huấn luyện & tinh chỉnh | ⬜ Chưa làm |
 | | B12 Đánh giá & chọn ngưỡng | ⬜ Chưa làm |
 | | B13 Giải thích SHAP | ⬜ Chưa làm |
@@ -29,7 +29,7 @@
 | | B16 Giám sát & vận hành | ⬜ Chưa làm |
 | **F – Kết thúc** | B17 Báo cáo & bảo vệ | ⬜ Chưa làm |
 
-**Hoàn thành: 9 / 18 bước** (Giai đoạn A, B, C xong).
+**Hoàn thành: 10 / 18 bước** (Giai đoạn A, B, C xong; Giai đoạn D: 1/5).
 
 ---
 
@@ -95,16 +95,31 @@
 * **Apriori:** 15 luật lift ≥ 2; mạnh nhất `GPA_Low + Failed_2plus` → 55,8% (lift 5,5). FP-Growth cùng kết quả nhưng chậm hơn (18 giây so với 0,07 giây, vì chỉ 11 item).
 * 5 unit test mới; tổng 50/50 đạt.
 
+### B9 – Chia tập dữ liệu ✅ (commit "Buoc 9: chia tap du lieu")
+* `python -m src.ml.split` → Train 54.474 dòng / 14.324 SV (10,08% dương), Test 13.650 dòng / 3.604 SV (10,43%), Scoring 11.115 dòng; 43 đặc trưng.
+* 6/6 kiểm tra đạt: không giao sinh viên (kể cả giữa các fold CV), Test 20,0%, không có cột rò rỉ; CV 5 fold có tỷ lệ dương 9,70 – 10,58%.
+* `data/splits/test_student_ids.csv` là nguồn sự thật của cách chia; B10 – B14 gọi `load_splits()`.
+* File: `src/ml/split.py` (tách khỏi `train.py`), `tests/test_split.py`; tổng 57/57 test đạt.
+
+### Rà soát B6 – B9 (2026-10-26)
+* **Kiểm tra rò rỉ tự động:** AUC đơn biến cao nhất trên Train là 0,73 (`Sem_GPA`); không đặc trưng nào > 0,9.
+* **Sửa:**
+  1. B8 ghi "thu nhập trung bình" của cụm nhưng thực chất là trung bình hình học (exp của trung bình log) → đổi sang trung vị thật (29.000 / 35.000 / 71.000 / 69.000); cập nhật notebook 03 và B08.
+  2. B9: kiểm tra "Scoring set" chỉ xét số dòng > 0 → kiểm tra thật: mỗi sinh viên đúng 1 dòng, không trùng dòng nào của Train/Test.
+  3. EDA: ghi rõ hạn chế của Kaplan–Meier khi coi tốt nghiệp là "bị cắt" (thực chất là rủi ro cạnh tranh).
+  4. Tài liệu: kích thước bảng đặc trưng "~45" → 47 cột (43 đặc trưng); số dòng Train/Test chính xác; ví dụ clipping ở B04; mục "Dữ liệu đang có".
+* **Ghi nhận về dữ liệu** (không phải lỗi): mọi dòng nhãn 1 đều là kỳ cuối quan sát của sinh viên; 18% dòng nhãn 0 cũng là kỳ cuối (tốt nghiệp). Toàn bộ 1.968 sinh viên tốt nghiệp ở kỳ 8; kỳ 8 có 204 dòng "bỏ học kỳ sau", nghĩa là không tốt nghiệp đúng hạn. Không đặc trưng nào mã hóa "đây là kỳ cuối", nên không gây rò rỉ.
+
 ---
 
-## 3. Việc tiếp theo: B9 – Tạo tập có nhãn & chia Train/Test
+## 3. Việc tiếp theo: B10 – Tiền xử lý trong Pipeline & mất cân bằng lớp
 
-Chi tiết: [`B09_CHIA_TAP_DU_LIEU.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_MAY/B09_CHIA_TAP_DU_LIEU.md)
+Chi tiết: [`B10_TIEN_XU_LY_MAT_CAN_BANG.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_MAY/B10_TIEN_XU_LY_MAT_CAN_BANG.md)
 
-- [ ] `src/ml/train.py` (hàm `make_splits`): tách Scoring set (`Censored = 1`, 11.115 dòng); tập có nhãn 68.124 dòng; loại cột rò rỉ.
-- [ ] Chia 80/20 theo `Student_ID` bằng `StratifiedGroupKFold` (`random_state = 42`); kiểm tra giao `Student_ID` = ∅ và tỷ lệ lớp dương ~10,2% ở cả hai tập.
-- [ ] Lưu `data/splits/test_student_ids.csv`; chuẩn bị `StratifiedGroupKFold(5)` cho CV ở B11.
-- [ ] Unit test cho tính không giao nhau và tính tái lập.
+- [ ] `src/ml/train.py`: hàm `build_pipeline(model_name, imbalance)` trả về Pipeline **chưa fit**.
+- [ ] `ColumnTransformer` theo `feature_spec.json`: LogReg (imputer median, Delta điền 0, winsorize P1–P99 + `log1p` biến lệch, `StandardScaler`, One-Hot); mô hình cây (giữ `NaN` cho XGBoost / LightGBM, imputer median cho RF / DT, One-Hot).
+- [ ] Mất cân bằng: `class_weight='balanced'`, `scale_pos_weight` tính từ `y_train`, thử SMOTE trong `imblearn.Pipeline`.
+- [ ] Unit test: Pipeline fit được trên dữ liệu có `NaN`; không có bước nào fit ngoài Pipeline; tham số học (median, mean/std) chỉ từ Train.
 
 ---
 
@@ -123,7 +138,7 @@ Chi tiết: [`B09_CHIA_TAP_DU_LIEU.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_MAY/B0
 * PostgreSQL `dropout_ews`: `ingestion_log` 3 dòng (1 `SUCCESS`, 1 `SKIPPED` khi chạy lại, 1 `FAILED` từ file hỏng dùng để thử); `students` 20.000; `financial_profiles` 20.000; `predictions` rỗng.
 * MongoDB `dropout_ews.academic_semesters`: 79.239 document, unique index `(student_id, semester)`.
 * PostgreSQL `student_clusters`: 20.000 dòng (B8).
-* Trên máy: `data/processed/clean_semesters.parquet` (không commit, tạo lại bằng `python -m src.etl.clean`).
+* Trên máy (không commit, tạo lại bằng script): `data/processed/clean_semesters.parquet` (B4), `data/features/feature_table.parquet` (B7), `data/splits/test_student_ids.csv` + `split_summary.json` (B9).
 * MLflow: experiment `_smoke_test` đã xóa (chỉ dùng để thử ghi artifact).
 
 ---
@@ -151,7 +166,7 @@ Chi tiết: [`B09_CHIA_TAP_DU_LIEU.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_MAY/B0
 docker compose up -d          # bật lại MinIO, PostgreSQL, MongoDB, MLflow
 .venv\Scripts\activate
 python -m src.ops.check_env       # phải báo "Tất cả đều sẵn sàng"
-python -m pytest              # 50/50 đạt
+python -m pytest              # 57/57 đạt
 ```
 
 * Muốn giải phóng RAM khi không làm: `docker compose stop` (dữ liệu vẫn giữ trong volume).
