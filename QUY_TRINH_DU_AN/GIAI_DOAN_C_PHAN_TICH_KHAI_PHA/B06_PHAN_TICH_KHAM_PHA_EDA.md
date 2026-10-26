@@ -69,16 +69,33 @@ Bảng ghép từ `load_analytic_table()` (79.239 dòng). Các tỷ lệ bỏ h�
 ---
 
 ## 5. Output
-* Thư mục `reports/figures/eda_*.png`.
-* Danh sách **5 – 10 insight**, ví dụ: "Áp lực tài chính và thế hệ đầu là hai yếu tố gắn với tỷ lệ bỏ học cao".
-* Danh sách giả thuyết đặc trưng cần tạo ở B7.
+* Notebook [`notebooks/01_data_cleaning_eda.ipynb`](../../notebooks/01_data_cleaning_eda.ipynb) (đã chạy, có sẵn output): 9 mục, mỗi mục gồm code, biểu đồ, bảng số liệu và nhận xét.
+* 8 biểu đồ `reports/figures/eda_*.png`: `label_by_semester`, `semesters_per_student`, `group_rates`, `distributions`, `correlation`, `trajectory`, `delta_cumulative`, `kaplan_meier`.
+
+**10 insight chính** (chi tiết ở mục 9 của notebook):
+
+| # | Insight | Hệ quả |
+|:---:|---|---|
+| 1 | Lớp bỏ học 10,2%; tăng từ 7,4% (kỳ 1) tới 14,7% (kỳ 7) | PR-AUC + trọng số lớp; giữ `Semester`, thêm `Is_First_Semester` |
+| 2 | Học tập mạnh nhất: GPA ρ = −0,24, môn trượt +0,20 | `CGPA`, `Cum_Failed_Courses`, `Failed_Ratio` |
+| 3 | Tài chính mạnh thứ hai: áp lực 2,46 → 3,87; làm thêm 16,5 → 21,3 giờ | `Financial_Burden_Index`, `Tuition_to_Income` |
+| 4 | Nhóm bỏ học sa sút trong 4 kỳ trước khi bỏ; nhóm tốt nghiệp có áp lực tài chính và giờ làm thêm đi ngang | `Delta_*`, `*_Roll3`, `GPA_Slope` |
+| 5 | GPA tụt ≥ 0,5: 32,5% bỏ học; nợ tích lũy ≥ 6 môn: 21,5% | Xác nhận `Delta_GPA`, `Cum_Failed_Courses` |
+| 6 | Thế hệ đầu 13,6% so với 8,4%; học bổng 7,3% so với 11,2%; hộ đông người rủi ro cao hơn (7,3% → 14,3%) | Giữ biến nhân khẩu học; kiểm tra công bằng ở B12 |
+| 7 | Không khai báo thu nhập: 84,7% bỏ học (chỉ 118 dòng) | Giữ cờ `Income_Missing`; theo dõi ở SHAP (B13) |
+| 8 | Gặp cố vấn nhiều hơn ở nhóm bỏ học (nhân quả ngược) | Không diễn giải là nguyên nhân |
+| 9 | Giới tính, tuổi gần như không khác biệt | Dùng cho kiểm tra công bằng |
+| 10 | Nhóm tài chính tương quan với nhau (|ρ| ≈ 0,5 – 0,57) | Lưu ý khi đọc hệ số LogReg và SHAP |
+
+* Kaplan–Meier: xác suất chưa bỏ học sau 8 kỳ là 46,3%; có học bổng 57,9% so với không có 42,2%; không phải thế hệ đầu 52,0% so với thế hệ đầu 35,9%.
 
 ## 6. Công cụ / File thực hiện
-Notebook `01_data_cleaning_eda.ipynb` (phần 2) – `pandas`, `seaborn`, `plotly`, `lifelines` (Kaplan–Meier).
+Notebook `notebooks/01_data_cleaning_eda.ipynb` (`pandas`, `seaborn`, `lifelines`), đọc dữ liệu bằng `load_analytic_table()` của B5. Phần 1 (kiểm tra chất lượng, làm sạch) đã đóng gói thành script ở B3 / B4. Chạy lại toàn bộ: `jupyter nbconvert --to notebook --execute --inplace notebooks/01_data_cleaning_eda.ipynb`.
 
-## 7. Tiêu chí hoàn thành
-- [ ] Mỗi nhóm biến (học tập, hành vi, tài chính, nhân khẩu) có ít nhất 1 biểu đồ và 1 nhận xét.
-- [ ] Có ít nhất 1 biểu đồ quỹ đạo chứng minh giá trị của dữ liệu theo chiều dọc.
+## 7. Tiêu chí hoàn thành (đã kiểm tra 2026-10-26)
+- [x] Mỗi nhóm biến (học tập, hành vi, tài chính, nhân khẩu) có ít nhất 1 biểu đồ và 1 nhận xét.
+- [x] Có biểu đồ quỹ đạo chứng minh giá trị của dữ liệu theo chiều dọc (`eda_trajectory.png`, `eda_delta_cumulative.png`).
+- [x] Notebook chạy từ đầu đến cuối không lỗi; 8 biểu đồ nhúng trong notebook và lưu ra `reports/figures/`.
 
 ---
 

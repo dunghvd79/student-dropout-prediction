@@ -1,5 +1,5 @@
 # TIẾN ĐỘ DỰ ÁN
-**Cập nhật lần cuối:** 2026-10-26 · **Commit mới nhất:** "Buoc 5: nap kho Polyglot" (xem `git log`)  
+**Cập nhật lần cuối:** 2026-10-26 · **Commit mới nhất:** "Buoc 6: EDA" (xem `git log`)  
 **Quy trình chi tiết:** [`QUY_TRINH_DU_AN/`](./QUY_TRINH_DU_AN/README.md)
 
 > Cập nhật file này mỗi khi xong một bước: đổi trạng thái, ghi commit, thêm quyết định / vấn đề mới.
@@ -16,8 +16,8 @@
 | | B3 Kiểm tra chất lượng dữ liệu | ✅ Xong |
 | | B4 Làm sạch dữ liệu | ✅ Xong |
 | | B5 Nạp kho Polyglot | ✅ Xong |
-| **C – Phân tích & Khai phá** | B6 EDA | ⏭️ **Làm tiếp theo** |
-| | B7 Trích xuất đặc trưng | ⬜ Chưa làm |
+| **C – Phân tích & Khai phá** | B6 EDA | ✅ Xong |
+| | B7 Trích xuất đặc trưng | ⏭️ **Làm tiếp theo** |
 | | B8 Khai phá dữ liệu | ⬜ Chưa làm |
 | **D – Học máy** | B9 Chia tập | ⬜ Chưa làm |
 | | B10 Tiền xử lý & mất cân bằng | ⬜ Chưa làm |
@@ -29,7 +29,7 @@
 | | B16 Giám sát & vận hành | ⬜ Chưa làm |
 | **F – Kết thúc** | B17 Báo cáo & bảo vệ | ⬜ Chưa làm |
 
-**Hoàn thành: 6 / 18 bước** (Giai đoạn A và B xong).
+**Hoàn thành: 7 / 18 bước** (Giai đoạn A và B xong; Giai đoạn C: 1/3).
 
 ---
 
@@ -78,18 +78,21 @@
 * **Giới hạn đã biết (chưa xử lý):** `load.py` chỉ upsert, không xóa sinh viên / document không còn trong lô mới. Đủ cho dữ liệu hiện tại (một lô); cần thêm bước dọn khi có nhiều lô.
 * Chạy lại toàn bộ trên dữ liệu thật: kết quả không đổi (hash dữ liệu sạch `d0f62efcf08dc468`, 5/5 đối soát B5 đạt). 38/38 unit test đạt.
 
+### B6 – EDA ✅ (commit "Buoc 6: EDA")
+* Notebook `notebooks/01_data_cleaning_eda.ipynb` (đã chạy, 8 biểu đồ nhúng) + `reports/figures/eda_*.png`.
+* 10 insight; nổi bật: GPA tụt ≥ 0,5 → 32,5% bỏ học; nợ tích lũy ≥ 6 môn → 21,5%; nhóm bỏ học có áp lực tài chính tăng dần trong 4 kỳ trước khi bỏ (nhóm tốt nghiệp đi ngang); không khai báo thu nhập → 84,7% (118 dòng); gặp cố vấn nhiều hơn ở nhóm bỏ học (nhân quả ngược).
+* Sửa lỗi phát sinh: `src/etl/validate.py` gọi `matplotlib.use("Agg")` khi import, làm notebook không hiển thị được biểu đồ → chuyển sang vẽ bằng `matplotlib.figure.Figure`, không đổi backend toàn cục.
+
 ---
 
-## 3. Việc tiếp theo: B6 – Phân tích khám phá (EDA)
+## 3. Việc tiếp theo: B7 – Trích xuất đặc trưng theo chiều dọc
 
-Chi tiết: [`B06_PHAN_TICH_KHAM_PHA_EDA.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_C_PHAN_TICH_KHAI_PHA/B06_PHAN_TICH_KHAM_PHA_EDA.md)
+Chi tiết: [`B07_TRICH_XUAT_DAC_TRUNG.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_C_PHAN_TICH_KHAI_PHA/B07_TRICH_XUAT_DAC_TRUNG.md) · Căn cứ: mục 9 của notebook EDA
 
-- [ ] Notebook `notebooks/01_data_cleaning_eda.ipynb`: đọc dữ liệu bằng `load_analytic_table()`.
-- [ ] Mất cân bằng nhãn; phân bố số kỳ; tỷ lệ bỏ học theo học kỳ và theo nhóm (`First_Generation`, `Scholarship`, `Housing_Status`, `Financial_Stress`), tính trên tập có nhãn (`Censored = 0`).
-- [ ] Phân phối các biến chính tách theo nhãn; ma trận tương quan Spearman.
-- [ ] Biểu đồ quỹ đạo GPA / chuyên cần / áp lực tài chính theo học kỳ (nhóm sắp bỏ học so với nhóm ở lại).
-- [ ] (Tùy chọn) Kaplan–Meier.
-- [ ] 5 – 10 insight + danh sách giả thuyết đặc trưng cho B7; lưu biểu đồ `reports/figures/eda_*.png`.
+- [ ] `src/analysis/features.py`: Lag, Delta, Cumulative, CGPA, Rolling, `GPA_Slope`, chỉ số tài chính, `Has_Emergency`, `Is_First_Semester`, `Failed_Ratio`, chỉ dùng dữ liệu kỳ ≤ t của chính sinh viên.
+- [ ] Output `data/features/feature_table.parquet` (79.239 × ~45) + `config/feature_spec.json`.
+- [ ] Unit test: `Delta_GPA` kỳ 2 của `STU_00001` = −0,12; `Cum_Failed_Courses` kỳ 4 = 5; test "xóa kỳ cuối, đặc trưng các kỳ trước không đổi".
+- [ ] Notebook `02_feature_engineering.ipynb`: kiểm tra nhanh tín hiệu của các đặc trưng mới.
 
 ---
 

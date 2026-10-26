@@ -17,16 +17,13 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-import matplotlib
+import pandas as pd
+from matplotlib.figure import Figure  # vẽ không qua pyplot → không đổi backend của nơi import module này
+from sqlalchemy import text
 
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-import pandas as pd  # noqa: E402
-from sqlalchemy import text  # noqa: E402
-
-from src.core import config, db  # noqa: E402
-from src.etl.ingest import check_schema  # noqa: E402
-from src.core.schema import (  # noqa: E402
+from src.core import config, db
+from src.etl.ingest import check_schema
+from src.core.schema import (
     COLUMNS, GENDER_MAP, HOUSING_VALUES, NULLABLE_COLUMNS, NUMERIC_KINDS, RANGES, STATIC_COLUMNS,
     STATUS_VALUES,
 )
@@ -256,22 +253,25 @@ def make_figures(df: pd.DataFrame, fig_dir: Path) -> list[tuple[str, str]]:
     fig_dir.mkdir(parents=True, exist_ok=True)
     figures = []
 
+    def new_figure(figsize):
+        fig = Figure(figsize=figsize)
+        return fig, fig.subplots()
+
     def save(fig, name, caption):
         fig.tight_layout()
         fig.savefig(fig_dir / name, dpi=110)
-        plt.close(fig)
         figures.append((name, caption))
 
     missing = df.isna().mean().mul(100)
     missing = missing[missing > 0].sort_values()
-    fig, ax = plt.subplots(figsize=(6, 2.5))
+    fig, ax = new_figure((6, 2.5))
     ax.barh(missing.index, missing.values, color="#4C72B0")
     ax.axvline(MISSING_MAX * 100, color="#C44E52", ls="--", label=f"Ngưỡng {MISSING_MAX:.0%}")
     ax.set_xlabel("% dòng thiếu")
     ax.legend()
     save(fig, "dq_missing.png", "Tỷ lệ thiếu theo cột (đường đỏ: ngưỡng data contract)")
 
-    fig, ax = plt.subplots(figsize=(6, 3))
+    fig, ax = new_figure((6, 3))
     ax.hist(df["Attendance"], bins=110, color="#4C72B0")
     for x in (0, 100):
         ax.axvline(x, color="#C44E52", ls="--")
@@ -282,7 +282,7 @@ def make_figures(df: pd.DataFrame, fig_dir: Path) -> list[tuple[str, str]]:
 
     labeled = df[df["Censored"] == 0]
     rate = labeled.groupby(labeled["Financial_Stress"].clip(upper=10).astype(int))["Target_Dropout_Next_Sem"].mean()
-    fig, ax1 = plt.subplots(figsize=(6, 3))
+    fig, ax1 = new_figure((6, 3))
     ax1.hist(df["Financial_Stress"], bins=60, color="#4C72B0")
     ax1.axvline(5, color="#C44E52", ls="--")
     ax1.set_xlabel("Financial_Stress")
@@ -293,7 +293,7 @@ def make_figures(df: pd.DataFrame, fig_dir: Path) -> list[tuple[str, str]]:
     save(fig, "dq_financial_stress.png",
          "Financial_Stress: phân phối (cột) và tỷ lệ bỏ học theo mức (đường cam); vạch đỏ là mốc 5 của thang mô tả")
 
-    fig, ax = plt.subplots(figsize=(6, 3))
+    fig, ax = new_figure((6, 3))
     ax.hist(df["Family_Income"].dropna(), bins=80, color="#4C72B0")
     ax.set_xscale("log")
     ax.set_xlabel("Family_Income (thang log)")
