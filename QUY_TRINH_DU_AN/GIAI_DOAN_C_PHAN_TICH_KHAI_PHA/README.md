@@ -35,8 +35,8 @@ clean_semesters.parquet ──► [B7 Feature Engineering] ──► feature_tab
 
 ## Input → Output của cả giai đoạn
 * **Input:** Dữ liệu sạch (`clean_semesters.parquet` hoặc `load_analytic_table()`).
-* **Output:** Báo cáo EDA, `feature_table.parquet` (79.239 × ~45), `feature_spec.json`, bảng `student_clusters`, `association_rules.csv`.
+* **Output:** Báo cáo EDA, `feature_table.parquet` (79.239 × 47; 43 đặc trưng), `feature_spec.json`, bảng `student_clusters`, `association_rules.csv`.
 
 ## Điều kiện để sang Giai đoạn D
-- [ ] Đặc trưng qua unit test, không dùng dữ liệu kỳ sau.
-- [ ] Có hồ sơ cụm và top luật kết hợp có diễn giải.
+- [x] Đặc trưng qua unit test, không dùng dữ liệu kỳ sau.
+- [x] Có hồ sơ cụm và top luật kết hợp có diễn giải.

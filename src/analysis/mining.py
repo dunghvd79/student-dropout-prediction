@@ -60,6 +60,7 @@ def student_profile(features: pd.DataFrame) -> pd.DataFrame:
     prof["First_Generation"] = g["First_Generation"].first()
     prof["Scholarship"] = g["Scholarship"].first()
     prof["N_Semesters"] = g.size()
+    prof["Family_Income"] = g["Family_Income"].first()  # thu nhập gốc (có thể thiếu), chỉ để mô tả cụm
     return prof
 
 
@@ -89,9 +90,9 @@ def describe_clusters(profile: pd.DataFrame, labels: np.ndarray) -> pd.DataFrame
         ty_le_tot_nghiep=("Graduated", "mean"),
         the_he_dau=("First_Generation", "mean"),
         hoc_bong=("Scholarship", "mean"),
-        **{c: (c, "mean") for c in CLUSTER_FEATURES},
+        **{c: (c, "mean") for c in CLUSTER_FEATURES if c != "Income_log"},
+        Family_Income_trung_vi=("Family_Income", "median"),  # trung vị thật, bỏ qua sinh viên không khai báo
     )
-    table["Family_Income_tb"] = np.expm1(table.pop("Income_log")).round(-2)
     table["cluster_name"] = name_clusters(table)
     return table.sort_values("ty_le_bo_hoc", ascending=False)
 

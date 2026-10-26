@@ -32,5 +32,5 @@ CSV nguồn ──[B2 Extract]──► MinIO raw/ ──[B3 Validate]──► 
 * Dự án vẫn giữ một bản thô trong MinIO, nên vẫn có lợi ích "chạy lại từ đầu" của ELT.
 
 ## Điều kiện để sang Giai đoạn C
-- [ ] Số lượng khớp: 20.000 / 20.000 / 79.239; chạy lại pipeline không nhân đôi dữ liệu.
-- [ ] Mọi vấn đề trong báo cáo chất lượng đều đã được xử lý hoặc có quyết định rõ ràng.
+- [x] Số lượng khớp: 20.000 / 20.000 / 79.239; chạy lại pipeline không nhân đôi dữ liệu.
+- [x] Mọi vấn đề trong báo cáo chất lượng đều đã được xử lý hoặc có quyết định rõ ràng.

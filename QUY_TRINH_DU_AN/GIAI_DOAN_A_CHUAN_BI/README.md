@@ -16,5 +16,5 @@ Trước khi chạm vào dữ liệu, nhóm cần **thống nhất bài toán** 
 * **Output:** Định nghĩa bài toán đã chốt + môi trường chạy được (MinIO, PostgreSQL, MongoDB, MLflow; Streamlit thêm ở B15) + cấu trúc thư mục dự án.
 
 ## Điều kiện để sang Giai đoạn B
-- [ ] Cả nhóm thống nhất nhãn, đơn vị dự đoán, chỉ số chính (PR-AUC) và tiêu chí thành công.
-- [ ] `docker compose ps` cho thấy đủ 4 dịch vụ (MinIO, PostgreSQL, MongoDB, MLflow) đang chạy và `python -m src.ops.check_env` báo sẵn sàng trên máy mọi thành viên. Streamlit được thêm ở B15.
+- [ ] Cả nhóm thống nhất nhãn, đơn vị dự đoán, chỉ số chính (PR-AUC) và tiêu chí thành công. *(Đã chốt trong B00; chờ cả nhóm xác nhận.)*
+- [ ] `docker compose ps` cho thấy đủ 4 dịch vụ (MinIO, PostgreSQL, MongoDB, MLflow) đang chạy và `python -m src.ops.check_env` báo sẵn sàng trên máy mọi thành viên. Streamlit được thêm ở B15. *(Đã đạt trên máy phát triển; chờ các thành viên khác xác nhận.)*

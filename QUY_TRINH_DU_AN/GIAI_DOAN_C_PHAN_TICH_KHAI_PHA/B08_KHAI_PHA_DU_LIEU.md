@@ -110,9 +110,9 @@ Lớp bỏ học chỉ ~10%, nên mọi luật có vế phải `{DROPOUT}` có s
 
 | Cụm | Số SV | Bỏ học | Đặc điểm | Gợi ý can thiệp |
 |---|---:|---:|---|---|
-| Nguy cơ cao: sa sút học tập + áp lực tài chính | 3.881 | 67% | GPA 2,30; trượt 1,06 môn/kỳ; làm thêm 26,4 giờ; áp lực 5,55; thu nhập ~28.100 | Hỗ trợ tài chính **và** học thuật |
+| Nguy cơ cao: sa sút học tập + áp lực tài chính | 3.881 | 67% | GPA 2,30; trượt 1,06 môn/kỳ; làm thêm 26,4 giờ; áp lực 5,55; thu nhập trung vị 29.000 | Hỗ trợ tài chính **và** học thuật |
 | Đi làm nhiều, áp lực tài chính vừa | 5.566 | 32% | Làm thêm 25,7 giờ; GPA 2,75; chuyên cần thấp nhất | Học bổng / việc làm trong trường |
-| Học lực yếu, tài chính ổn định | 5.360 | 31% | Thu nhập ~74.400; GPA 2,60; trượt 0,82 môn/kỳ | Phụ đạo, cố vấn môn học |
+| Học lực yếu, tài chính ổn định | 5.360 | 31% | Thu nhập trung vị 71.000; GPA 2,60; trượt 0,82 môn/kỳ | Phụ đạo, cố vấn môn học |
 | Học tốt – ổn định | 5.193 | 17% | GPA 3,07; chuyên cần, LMS cao | Theo dõi định kỳ |
 
 * **Chọn k = 4:** Elbow không có khuỷu rõ. Silhouette cao nhất ở k = 2 (0,205) và ≈ 0,13 cho k = 4 – 6. Chọn k = 4 để diễn giải được, và các cụm khác biệt rõ về rủi ro.

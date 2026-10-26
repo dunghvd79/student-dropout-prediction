@@ -27,7 +27,7 @@ Biến dữ liệu thô thành dữ liệu sạch, đúng kiểu, đúng miền 
 * **Biến động (time-varying):** thay đổi theo kỳ (`LMS_Logins`, `Sem_GPA`…). Chỉ được lấy từ **quá khứ** (ffill). Dùng bfill sẽ "nhìn trước tương lai", gây **rò rỉ thời gian (temporal leakage)**.
 
 ### 2.3. Clipping và Winsorization
-* **Clipping:** chặn giá trị về một khoảng **cố định theo nghiệp vụ**, ví dụ `Attendance` về [0, 100]. Dùng cho **lỗi dữ liệu**.
+* **Clipping:** chặn giá trị về một khoảng **cố định theo nghiệp vụ**, ví dụ `Attendance` > 100 (đếm dư) về 100. Chỉ dùng khi giá trị lỗi vẫn **gần** giá trị thật. Nếu giá trị lỗi là một **mã lỗi** (như `Attendance = −2`), clip sẽ tạo ra số đo giả (0%), nên phải coi là **thiếu** và xử lý như dữ liệu thiếu.
 * **Winsorization:** chặn giá trị về **phân vị** của dữ liệu (ví dụ P1 – P99). Dùng để giảm ảnh hưởng của giá trị cực đoan **hợp lệ** lên mô hình nhạy cảm (hồi quy tuyến tính). Vì phân vị được "học" từ dữ liệu, winsorization phải **fit trên Train** (thực hiện ở B10, không làm ở đây).
 
 ### 2.4. Chuẩn hóa dữ liệu phân loại
