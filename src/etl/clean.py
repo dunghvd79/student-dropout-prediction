@@ -53,12 +53,22 @@ def clean(df: pd.DataFrame) -> tuple[pd.DataFrame, list[tuple[str, int]]]:
     if unknown:
         raise ValueError(f"Housing_Status không hợp lệ: {unknown}")
 
-    # 6. Attendance: lỗi nhập liệu ngoài [0, 100] → clip
-    out_of_range = ((df["Attendance"] < 0) | (df["Attendance"] > 100)).sum()
-    df["Attendance"] = df["Attendance"].clip(0, 100)
-    log.append(("Clip Attendance về [0, 100]", int(out_of_range)))
+    # 6. Attendance: hai loại lỗi khác nhau
+    #    • < 0: luôn đúng bằng -2 (mã lỗi); kỳ trước/sau của cùng sinh viên quanh 86% → coi là THIẾU,
+    #      không clip về 0 (clip sẽ tạo "0% chuyên cần" và cú sụt giả ~-86 điểm ở Delta_Attendance).
+    #    • > 100: 101 hoặc 105 (đếm dư) → clip về 100.
+    negative = df["Attendance"] < 0
+    above = df["Attendance"] > 100
+    df.loc[negative, "Attendance"] = float("nan")
+    df["Attendance"] = df["Attendance"].clip(upper=100)
+    log.append(("Attendance > 100 → clip về 100", int(above.sum())))
 
     by_student = df.groupby("Student_ID", sort=False)
+
+    #    Giá trị âm đã thành thiếu → lấy chuyên cần kỳ trước của cùng sinh viên (ffill, không bfill)
+    df["Attendance"] = by_student["Attendance"].ffill()
+    log.append(("Attendance < 0 (mã lỗi -2) → thiếu, điền bằng kỳ trước", int(negative.sum() - df["Attendance"].isna().sum())))
+    log.append(("Attendance vẫn thiếu (lỗi ở kỳ 1, điền ở B10)", int(df["Attendance"].isna().sum())))
 
     # 7. Family_Income: thuộc tính tĩnh → lấy từ kỳ khác của cùng sinh viên (ffill + bfill)
     missing_before = df["Family_Income"].isna()
@@ -92,8 +102,8 @@ def post_checks(df: pd.DataFrame, n_expected: int) -> list[tuple[str, bool, str]
     income_missing_students = df.loc[df["Income_Missing"] == 1, "Student_ID"].nunique()
     return [
         ("Số dòng không đổi", len(df) == n_expected, f"{len(df):,} / {n_expected:,}"),
-        ("Attendance trong [0, 100]", bool(df["Attendance"].between(0, 100).all()),
-         f"min {df['Attendance'].min()}, max {df['Attendance'].max()}"),
+        ("Attendance trong [0, 100] (bỏ qua ô thiếu)", bool(df["Attendance"].dropna().between(0, 100).all()),
+         f"min {df['Attendance'].min()}, max {df['Attendance'].max()}, thiếu {int(df['Attendance'].isna().sum())}"),
         ("Gender còn 3 nhóm", set(df["Gender"].unique()) <= set(GENDER_MAP.values()),
          ", ".join(sorted(df["Gender"].unique()))),
         ("Cột tĩnh không đổi trong cùng sinh viên", int(static_varying.sum()) == 0,

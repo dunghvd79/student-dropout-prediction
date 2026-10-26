@@ -79,7 +79,7 @@ File thô từ MinIO (79.239 × 22).
 |:---:|---|---|---|
 | 1 | `Family_Income` thiếu | 3.604 dòng (4,5%); cột **không đổi theo kỳ**; 3.387 dòng lấy lại được từ kỳ khác của cùng sinh viên; 199 sinh viên thiếu ở mọi kỳ | Điền theo sinh viên (B4); phần còn lại + cờ `Income_Missing`, điền trung vị trong Pipeline (B10) |
 | 2 | `LMS_Logins` thiếu | 867 dòng (1,1%), 206 dòng ở kỳ 1 | Forward-fill theo sinh viên (B4); phần còn lại điền trung vị (B10) |
-| 3 | `Attendance` ngoài [0, 100] | 85 dòng < 0 (min −2), 164 dòng > 100 (max 105) | Clip về [0, 100] (B4) |
+| 3 | `Attendance` ngoài [0, 100] | 85 dòng < 0 (**đều bằng −2**, kỳ trước / sau quanh 86%), 164 dòng > 100 (101 hoặc 105) | Giá trị âm → thiếu, điền bằng kỳ trước; > 100 → clip về 100 (B4). *Ban đầu định clip cả hai về [0, 100]; sửa ở B7 khi phát hiện −2 là mã lỗi.* |
 | 4 | `Financial_Stress` vượt thang 1 – 5 | Trung vị 2,1; P99 = 9,0; max 18,6; 7.348 dòng > 5. Tỷ lệ bỏ học tăng đều theo chỉ số | **Giữ nguyên**; winsorize P99 / `log1p` cho mô hình tuyến tính (B10) |
 | 5 | `Family_Income` lệch phải | 3.000 → 488.000 | `log1p` cho mô hình tuyến tính (B10) |
 | 6 | `Gender` không nhất quán | 8 cách ghi | Map về 3 nhóm (B4) |

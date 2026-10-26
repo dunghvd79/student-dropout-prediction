@@ -77,15 +77,29 @@ Kỳ 1 không có kỳ trước, nên Lag/Delta không xác định. Có ba lự
 ---
 
 ## 5. Output
-* `feature_table.parquet` (79.239 × ~45): khóa (`Student_ID`, `Semester`) + đặc trưng + `Target_Dropout_Next_Sem` + `Censored` + `End_of_Semester_Status` (giữ lại để tách tập ở B9, **không** dùng làm đặc trưng).
-* `config/feature_spec.json`: danh sách đặc trưng, để B11 (huấn luyện) và B14 (dự đoán) dùng **cùng một** danh sách.
+* `data/features/feature_table.parquet` (79.239 × 47): khóa (`Student_ID`, `Semester`) + 43 đặc trưng + `Target_Dropout_Next_Sem` + `Censored` + `End_of_Semester_Status` (giữ lại để tách tập ở B9, **không** dùng làm đặc trưng).
+* `config/feature_spec.json`: **43 đặc trưng = 20 gốc + 23 chiều dọc**, chia theo `numeric` / `binary` / `categorical`, kèm `baseline_features` và `longitudinal_features` để làm ablation ở B11. B11 (huấn luyện) và B14 (dự đoán) dùng **cùng một** danh sách.
+* Notebook [`notebooks/02_feature_engineering.ipynb`](../../notebooks/02_feature_engineering.ipynb) + `reports/figures/feat_*.png`: kiểm tra tín hiệu của đặc trưng.
+
+**Kết quả kiểm tra tín hiệu** (tập có nhãn):
+* **7 / 10** đặc trưng mạnh nhất theo mutual information là đặc trưng chiều dọc (`GPA_Roll3`, `CGPA`, `Failed_Ratio`, `GPA_prev`, `Financial_Burden_Index`, `Stress_prev`, `GPA_Slope`).
+* Quan hệ phi tuyến:
+  * `Delta_GPA` có dạng **ngưỡng**: nhóm sụt mạnh nhất 19,5% so với ~9%.
+  * `Delta_Stress` có dạng **chữ U**: ổn định 6,5%, tăng mạnh 15,9%, giảm mạnh 10,9%.
+* `CGPA`: 21,7% → 3,1% theo ngũ phân vị. `Financial_Burden_Index`: 4,8% → 20,2%.
+* Nhóm GPA trùng thông tin (ρ 0,92 – 0,98); nhóm biến cố tài chính gần như không có tín hiệu. Giá trị **thêm vào** của đặc trưng chiều dọc sẽ được đo bằng ablation ở B11.
 
 ## 6. Công cụ / File thực hiện
-`src/analysis/features.py`, notebook `02_feature_engineering.ipynb` (`pandas`, `numpy`).
+* `src/analysis/features.py`: chạy `python -m src.analysis.features`. `GPA_Slope` tính theo công thức OLS bằng tổng tích lũy (vector hóa, không lặp từng sinh viên); toàn bộ bước chạy khoảng 12 giây.
+* `tests/test_features.py`: 6 unit test.
+* `notebooks/02_feature_engineering.ipynb`: kiểm tra tín hiệu.
 
-## 7. Tiêu chí hoàn thành
-- [ ] Unit test trên `STU_00001`: `Delta_GPA` kỳ 2 = 2,73 − 2,85 = **−0,12**; `Cum_Failed_Courses` kỳ 4 = 0 + 0 + 2 + 3 = **5**.
-- [ ] Test "không nhìn tương lai": xóa kỳ cuối của một sinh viên rồi tính lại; đặc trưng của các kỳ trước **không đổi**.
+## 7. Tiêu chí hoàn thành (đã kiểm tra 2026-10-26)
+- [x] Unit test trên `STU_00001` (dữ liệu thật): `Delta_GPA` kỳ 2 = **−0,12**; `Cum_Failed_Courses` kỳ 4 = **5**; `CGPA`, `GPA_Roll3` đúng; `GPA_Slope` khớp `numpy.polyfit`.
+- [x] Test "không nhìn tương lai": xóa kỳ cuối của mọi sinh viên rồi tính lại, đặc trưng các kỳ trước **không đổi**. Thêm: kỳ 1 không mượn dữ liệu của sinh viên khác; thứ tự dòng đầu vào không ảnh hưởng kết quả.
+- [x] Chạy 2 lần cho file giống hệt (MD5 `4212ecc9f9502ec70761510758b5c750`).
+
+> **Phát hiện trong lúc làm B7:** `Delta_Attendance` ban đầu dao động −96 đến +97 điểm. Truy ngược lại, B4 đã clip mã lỗi `Attendance = −2` về 0%, tạo cú sụt giả. Đã sửa B4: giá trị âm → thiếu, điền bằng kỳ trước. Sau khi sửa, `Delta_Attendance` nằm trong khoảng −28,8 đến +27,0.
 
 ---
 

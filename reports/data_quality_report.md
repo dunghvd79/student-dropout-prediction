@@ -1,5 +1,5 @@
 # BÁO CÁO CHẤT LƯỢNG DỮ LIỆU
-*Sinh tự động bởi `python -m src.etl.validate` lúc 2026-10-26 19:24. Xem phương pháp tại `QUY_TRINH_DU_AN/GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B03_KIEM_TRA_CHAT_LUONG_DU_LIEU.md`.*
+*Sinh tự động bởi `python -m src.etl.validate` lúc 2026-10-26 19:36. Xem phương pháp tại `QUY_TRINH_DU_AN/GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B03_KIEM_TRA_CHAT_LUONG_DU_LIEU.md`.*
 
 * **Nguồn:** `s3://raw/academic/ingest_date=2026-10-11/batch_id=20261011T085849Z_7df267/academic_survival_longitudinal.csv`
 * **batch_id:** `20261011T085849Z_7df267`
@@ -28,7 +28,7 @@
 |:---:|---|---|:---:|
 | 1 | `Family_Income` thiếu | Điền theo sinh viên (ffill + bfill, vì là thuộc tính tĩnh); còn trống thì cờ `Income_Missing`, trung vị trong Pipeline | B4, B10 |
 | 2 | `LMS_Logins` thiếu | Forward-fill theo sinh viên (không bfill) + cờ `LMS_Missing`; còn trống thì trung vị trong Pipeline | B4, B10 |
-| 3 | `Attendance` ngoài [0, 100] | Clip về [0, 100] (lỗi nhập liệu) | B4 |
+| 3 | `Attendance` ngoài [0, 100] | Giá trị âm luôn là −2 (mã lỗi; kỳ trước/sau quanh 86%) → coi là thiếu, điền bằng kỳ trước; > 100 (101, 105) → clip về 100 | B4 |
 | 4 | `Financial_Stress` vượt thang 1 – 5 | Giữ nguyên; winsorize P99 / `log1p` chỉ cho mô hình tuyến tính | B10 |
 | 5 | `Family_Income` lệch phải | `log1p` cho mô hình tuyến tính | B10 |
 | 6 | `Gender` nhiều cách ghi | Map về Female / Male / Other/Unknown theo `GENDER_MAP` | B4 |
@@ -163,7 +163,7 @@ Target=1 ⇔ Dropped_Out trên 100% dòng (rò rỉ nhãn: loại End_of_Semeste
 
 ![dq_missing.png](figures/dq_missing.png)
 
-**Attendance: 249 dòng nằm ngoài [0, 100] (đường đỏ) → clip ở B4**
+**Attendance: 249 dòng nằm ngoài [0, 100] (đường đỏ): giá trị âm là mã lỗi −2 → thiếu; > 100 → clip**
 
 ![dq_attendance.png](figures/dq_attendance.png)
 

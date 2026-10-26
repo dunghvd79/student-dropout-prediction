@@ -1,5 +1,5 @@
 # TIẾN ĐỘ DỰ ÁN
-**Cập nhật lần cuối:** 2026-10-26 · **Commit mới nhất:** "Buoc 6: EDA" (xem `git log`)  
+**Cập nhật lần cuối:** 2026-10-26 · **Commit mới nhất:** "Buoc 7: trich xuat dac trung" (xem `git log`)  
 **Quy trình chi tiết:** [`QUY_TRINH_DU_AN/`](./QUY_TRINH_DU_AN/README.md)
 
 > Cập nhật file này mỗi khi xong một bước: đổi trạng thái, ghi commit, thêm quyết định / vấn đề mới.
@@ -17,8 +17,8 @@
 | | B4 Làm sạch dữ liệu | ✅ Xong |
 | | B5 Nạp kho Polyglot | ✅ Xong |
 | **C – Phân tích & Khai phá** | B6 EDA | ✅ Xong |
-| | B7 Trích xuất đặc trưng | ⏭️ **Làm tiếp theo** |
-| | B8 Khai phá dữ liệu | ⬜ Chưa làm |
+| | B7 Trích xuất đặc trưng | ✅ Xong |
+| | B8 Khai phá dữ liệu | ⏭️ **Làm tiếp theo** |
 | **D – Học máy** | B9 Chia tập | ⬜ Chưa làm |
 | | B10 Tiền xử lý & mất cân bằng | ⬜ Chưa làm |
 | | B11 Huấn luyện & tinh chỉnh | ⬜ Chưa làm |
@@ -29,7 +29,7 @@
 | | B16 Giám sát & vận hành | ⬜ Chưa làm |
 | **F – Kết thúc** | B17 Báo cáo & bảo vệ | ⬜ Chưa làm |
 
-**Hoàn thành: 7 / 18 bước** (Giai đoạn A và B xong; Giai đoạn C: 1/3).
+**Hoàn thành: 8 / 18 bước** (Giai đoạn A và B xong; Giai đoạn C: 2/3).
 
 ---
 
@@ -59,7 +59,7 @@
 
 ### B4 – Làm sạch dữ liệu ✅ (commit "Buoc 4: lam sach du lieu")
 * `python -m src.etl.clean` → `data/processed/clean_semesters.parquet` (79.239 × 24) + `s3://processed/academic/batch_id=20261011T085849Z_7df267/clean_semesters.parquet`.
-* Gender đổi cách ghi 4.648 dòng; clip `Attendance` 249; điền `Family_Income` 3.387 (còn 217 dòng / 199 sinh viên → `Income_Missing`); điền `LMS_Logins` 658 (còn 209).
+* Gender đổi cách ghi 4.648 dòng; `Attendance`: clip 164 dòng > 100, 85 dòng mã lỗi −2 → thiếu, điền bằng kỳ trước (sửa ở B7, trước đó clip về 0); điền `Family_Income` 3.387 (còn 217 dòng / 199 sinh viên → `Income_Missing`); điền `LMS_Logins` 658 (còn 209).
 * 7/7 kiểm tra sau làm sạch đạt; chạy 2 lần cho file Parquet giống hệt (MD5 `deacca08…`); file hỏng bị chặn. 31/31 unit test đạt.
 * File: `src/etl/clean.py`, `tests/test_clean.py`, `reports/cleaning_log.md`.
 
@@ -83,16 +83,21 @@
 * 10 insight; nổi bật: GPA tụt ≥ 0,5 → 32,5% bỏ học; nợ tích lũy ≥ 6 môn → 21,5%; nhóm bỏ học có áp lực tài chính tăng dần trong 4 kỳ trước khi bỏ (nhóm tốt nghiệp đi ngang); không khai báo thu nhập → 84,7% (118 dòng); gặp cố vấn nhiều hơn ở nhóm bỏ học (nhân quả ngược).
 * Sửa lỗi phát sinh: `src/etl/validate.py` gọi `matplotlib.use("Agg")` khi import, làm notebook không hiển thị được biểu đồ → chuyển sang vẽ bằng `matplotlib.figure.Figure`, không đổi backend toàn cục.
 
+### B7 – Trích xuất đặc trưng ✅ (commit "Buoc 7: trich xuat dac trung")
+* `python -m src.analysis.features` → `data/features/feature_table.parquet` (79.239 × 47) + `config/feature_spec.json` (43 đặc trưng = 20 gốc + 23 chiều dọc).
+* Notebook `02_feature_engineering.ipynb`: 7 / 10 đặc trưng mạnh nhất (mutual information) là đặc trưng chiều dọc; `Delta_GPA` dạng ngưỡng, `Delta_Stress` dạng chữ U; nhóm GPA trùng thông tin (ρ 0,92 – 0,98).
+* 6 unit test mới (gồm test "không nhìn tương lai"); tổng 45/45 đạt. Chạy 2 lần cho file giống hệt.
+* **Sửa B4:** `Attendance = −2` là mã lỗi (85 dòng, kỳ trước / sau quanh 86%) chứ không phải 0% chuyên cần → coi là thiếu, điền bằng kỳ trước; trước đó clip về 0 tạo `Delta_Attendance` giả tới −96. Đã nạp lại kho, chạy lại EDA (số liệu chuyên cần đổi 0,1 – 0,2 điểm, đã cập nhật nhận xét).
+
 ---
 
-## 3. Việc tiếp theo: B7 – Trích xuất đặc trưng theo chiều dọc
+## 3. Việc tiếp theo: B8 – Khai phá dữ liệu
 
-Chi tiết: [`B07_TRICH_XUAT_DAC_TRUNG.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_C_PHAN_TICH_KHAI_PHA/B07_TRICH_XUAT_DAC_TRUNG.md) · Căn cứ: mục 9 của notebook EDA
+Chi tiết: [`B08_KHAI_PHA_DU_LIEU.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_C_PHAN_TICH_KHAI_PHA/B08_KHAI_PHA_DU_LIEU.md)
 
-- [ ] `src/analysis/features.py`: Lag, Delta, Cumulative, CGPA, Rolling, `GPA_Slope`, chỉ số tài chính, `Has_Emergency`, `Is_First_Semester`, `Failed_Ratio`, chỉ dùng dữ liệu kỳ ≤ t của chính sinh viên.
-- [ ] Output `data/features/feature_table.parquet` (79.239 × ~45) + `config/feature_spec.json`.
-- [ ] Unit test: `Delta_GPA` kỳ 2 của `STU_00001` = −0,12; `Cum_Failed_Courses` kỳ 4 = 5; test "xóa kỳ cuối, đặc trưng các kỳ trước không đổi".
-- [ ] Notebook `02_feature_engineering.ipynb`: kiểm tra nhanh tín hiệu của các đặc trưng mới.
+- [ ] **8A – Phân cụm:** tổng hợp lên mức sinh viên (20.000), chuẩn hóa, K-Means k = 2 … 10 (Elbow + Silhouette), so sánh DBSCAN, mô tả + đặt tên cụm theo tỷ lệ bỏ học, PCA 2D; ghi bảng `student_clusters` vào PostgreSQL.
+- [ ] **8B – Luật kết hợp:** rời rạc hóa thành item, Apriori / FP-Growth (`min_support = 0,01`), lọc vế phải `{DROPOUT}`, `confidence ≥ 0,3`, `lift ≥ 2`; `reports/association_rules.csv` + diễn giải.
+- [ ] Notebook `03_data_mining_patterns.ipynb`.
 
 ---
 
@@ -128,6 +133,7 @@ Chi tiết: [`B07_TRICH_XUAT_DAC_TRUNG.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_C_PHAN_T
 | 7 | Python 3.12 qua `uv`, không dùng 3.14 | Bản 3.12 đăng ký trên máy bị hỏng; 3.14 chưa ổn với shap/lightgbm/mlflow | B01 |
 | 8 | Ghim `alembic==1.14.0` | Bản mới hơn làm MLflow 2.19 không khởi động được | requirements.txt, Dockerfile |
 | 9 | Key MinIO thêm `batch_id=…` | Nạp nhiều lần trong cùng ngày không ghi đè lô cũ | B02 |
+| 10 | `Attendance = −2` coi là thiếu, điền bằng kỳ trước (chỉ clip > 100) | −2 là mã lỗi (kỳ trước / sau ~86%); clip về 0 tạo cú sụt giả | B03, B04, B07, THIET_KE_PIPELINE |
 
 ---
 
@@ -137,7 +143,7 @@ Chi tiết: [`B07_TRICH_XUAT_DAC_TRUNG.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_C_PHAN_T
 docker compose up -d          # bật lại MinIO, PostgreSQL, MongoDB, MLflow
 .venv\Scripts\activate
 python -m src.ops.check_env       # phải báo "Tất cả đều sẵn sàng"
-python -m pytest              # 38/38 đạt
+python -m pytest              # 45/45 đạt
 ```
 
 * Muốn giải phóng RAM khi không làm: `docker compose stop` (dữ liệu vẫn giữ trong volume).

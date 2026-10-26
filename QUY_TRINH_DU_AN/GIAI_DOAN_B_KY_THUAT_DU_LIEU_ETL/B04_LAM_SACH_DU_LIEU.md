@@ -59,7 +59,7 @@ File thô (79.239 × 22) + bảng quyết định ở [B3](./B03_KIEM_TRA_CHAT_L
 4. **Chuẩn hóa `Gender`:** `strip().lower()` rồi map:
    `female, f → Female` · `male, m → Male` · `other, prefer not to say → Other/Unknown`.
 5. **Chuẩn hóa `Housing_Status`:** `strip()`, kiểm tra thuộc {On-Campus, Off-Campus, With Parents}.
-6. **Sửa `Attendance`:** `clip(0, 100)` (249 dòng bị ảnh hưởng).
+6. **Sửa `Attendance`:** Giá trị âm luôn đúng bằng **−2** (mã lỗi): kỳ trước / kỳ sau của chính sinh viên đó quanh 86%, và không có ai thực sự chuyên cần 0 – 10% → coi là **thiếu**, điền bằng kỳ trước (ffill), không clip về 0 (clip sẽ tạo cú sụt giả ~−86 điểm). Giá trị > 100 (101, 105) là đếm dư → clip về 100. (164 dòng clip; 85 dòng âm: 60 điền được bằng kỳ trước, 25 dòng ở kỳ 1 còn thiếu → B10.)
 7. **Điền `Family_Income`:** `groupby('Student_ID')` → `ffill().bfill()` (hợp lệ vì là thuộc tính tĩnh). Gán `Income_Missing = 1` cho 199 sinh viên vẫn còn trống.
 8. **Điền `LMS_Logins`:** `groupby('Student_ID').ffill()` (**không bfill**). Gán `LMS_Missing = 1` cho các dòng ban đầu bị thiếu.
 9. **Giữ nguyên** `Financial_Stress`, `Emergency_Expense`, `Work_Hours`.
@@ -80,7 +80,9 @@ File thô (79.239 × 22) + bảng quyết định ở [B3](./B03_KIEM_TRA_CHAT_L
 |---|---:|
 | Khử trùng lặp | 0 |
 | Chuẩn hóa `Gender` (đổi cách ghi) | 4.648 |
-| Clip `Attendance` về [0, 100] | 249 |
+| `Attendance` > 100 → clip về 100 | 164 |
+| `Attendance` < 0 (mã lỗi −2) → thiếu, điền bằng kỳ trước | 60 |
+| `Attendance` vẫn thiếu (lỗi rơi vào kỳ 1) | 25 |
 | Điền `Family_Income` từ kỳ khác của cùng sinh viên | 3.387 |
 | `Family_Income` vẫn thiếu → `Income_Missing = 1` (199 sinh viên) | 217 |
 | Điền `LMS_Logins` bằng kỳ trước | 658 |
@@ -93,7 +95,7 @@ File thô (79.239 × 22) + bảng quyết định ở [B3](./B03_KIEM_TRA_CHAT_L
 
 ## 7. Tiêu chí hoàn thành (đã kiểm tra 2026-10-24)
 - [x] Mọi kiểm tra ở mục 4.10 đều đạt: 79.239 dòng; `Attendance` ∈ [0, 100]; `Gender` còn 3 nhóm; 0 vi phạm cột tĩnh; đủ 24 cột.
-- [x] Chạy lại hai lần cho kết quả giống hệt nhau: MD5 file Parquet `deacca08f68af0e38baec98cac03f001` cả hai lần; hash nội dung `d0f62efcf08dc468`.
+- [x] Chạy lại hai lần cho kết quả giống hệt nhau: MD5 file Parquet `d9ffd8db51926ede46ad39608bcfa838` cả hai lần; hash nội dung `c0980650c9f4212a` (sau khi sửa cách xử lý `Attendance` ở B7).
 - [x] File cố tình làm hỏng → dừng ở data contract, mã thoát 1, không ghi output.
 
 ---

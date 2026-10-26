@@ -30,12 +30,24 @@ def test_gender_mapped_to_groups(df):
     assert dict(log)["Chuẩn hóa Gender (đổi cách ghi)"] == 2  # 2 dòng của S2
 
 
-def test_attendance_clipped(df):
+def test_attendance_above_100_clipped(df):
     df.loc[0, "Attendance"] = 105
-    df.loc[1, "Attendance"] = -2
     out, log = clean(df)
-    assert out["Attendance"].between(0, 100).all()
-    assert dict(log)["Clip Attendance về [0, 100]"] == 2
+    assert out["Attendance"].max() == 100
+    assert dict(log)["Attendance > 100 → clip về 100"] == 1
+
+
+def test_attendance_negative_is_missing_then_forward_filled(df):
+    s1 = df["Student_ID"] == "S1"
+    df.loc[s1 & (df["Semester"] == 1), "Attendance"] = 88.0
+    df.loc[s1 & (df["Semester"] == 2), "Attendance"] = -2   # mã lỗi → lấy kỳ trước (88), không phải 0
+    df.loc[(df["Student_ID"] == "S2") & (df["Semester"] == 1), "Attendance"] = -2  # kỳ đầu → vẫn thiếu
+    out, log = clean(df)
+    assert rows_of(out, "S1")["Attendance"].iloc[1] == 88.0
+    assert pd.isna(rows_of(out, "S2")["Attendance"].iloc[0])
+    assert (out["Attendance"].dropna() > 0).all()
+    assert dict(log)["Attendance < 0 (mã lỗi -2) → thiếu, điền bằng kỳ trước"] == 1
+    assert dict(log)["Attendance vẫn thiếu (lỗi ở kỳ 1, điền ở B10)"] == 1
 
 
 def test_family_income_filled_within_student_both_directions(df):
