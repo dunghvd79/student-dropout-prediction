@@ -32,7 +32,7 @@ feature_table.parquet
 | [**B10**](./B10_TIEN_XU_LY_MAT_CAN_BANG.md) | Tiền xử lý & mất cân bằng lớp | Pipeline & ColumnTransformer, chuẩn hóa z-score, One-Hot, class weighting, SMOTE | `build_pipeline()` |
 | [**B11**](./B11_HUAN_LUYEN_TINH_CHINH.md) | Huấn luyện & tinh chỉnh | Logistic Regression, Decision Tree, Random Forest, Gradient Boosting (XGBoost, LightGBM), bias–variance, Cross-Validation, Random / Bayesian search, MLflow | Bảng so sánh, mô hình tốt nhất |
 | [**B12**](./B12_DANH_GIA_CHON_NGUONG.md) | Đánh giá & chọn ngưỡng | Đường PR / ROC, chọn ngưỡng, calibration & Brier score, công bằng (fairness), Model Registry | Báo cáo đánh giá, model Production |
-| [**B13**](./B13_GIAI_THICH_MO_HINH_SHAP.md) | Giải thích mô hình | XAI, giá trị Shapley, TreeSHAP, giải thích toàn cục / cục bộ | Biểu đồ SHAP, `top_reasons()` |
+| [**B13**](./B13_GIAI_THICH_MO_HINH_SHAP.md) | Giải thích mô hình | XAI, giá trị Shapley, LinearSHAP (mô hình cuối là LogReg), SHAP theo nhóm, giải thích toàn cục / cục bộ, SHAP để phát hiện rò rỉ | Biểu đồ SHAP, `top_reasons()` |
 
 ## Input → Output của cả giai đoạn
 * **Input:** `feature_table.parquet`, `feature_spec.json`.

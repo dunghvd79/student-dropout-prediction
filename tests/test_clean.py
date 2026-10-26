@@ -50,13 +50,15 @@ def test_attendance_negative_is_missing_then_forward_filled(df):
     assert dict(log)["Attendance vẫn thiếu (lỗi ở kỳ 1, điền ở B10)"] == 1
 
 
-def test_family_income_filled_within_student_both_directions(df):
+def test_family_income_point_in_time(df):
     s1 = df["Student_ID"] == "S1"
-    df.loc[s1 & (df["Semester"] == 1), "Family_Income"] = np.nan  # bfill từ kỳ 2
+    df.loc[s1 & (df["Semester"] == 1), "Family_Income"] = np.nan  # kỳ 1 chưa khai báo → KHÔNG lấy từ kỳ 2
     df.loc[s1 & (df["Semester"] == 3), "Family_Income"] = np.nan  # ffill từ kỳ 2
     out, _ = clean(df)
-    assert rows_of(out, "S1")["Family_Income"].eq(15000).all()
-    assert out["Income_Missing"].sum() == 0
+    s1_out = rows_of(out, "S1")
+    assert pd.isna(s1_out["Family_Income"].iloc[0])
+    assert s1_out["Family_Income"].iloc[1:].eq(15000).all()
+    assert s1_out["Income_Missing"].tolist() == [1, 0, 0]  # cờ chỉ dựa vào các kỳ đã qua
 
 
 def test_family_income_never_borrowed_from_other_student(df):

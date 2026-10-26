@@ -88,7 +88,7 @@ Word / Google Docs, PowerPoint / Google Slides, OBS (quay màn hình), Git.
 | Vì sao dùng Docker? | [B1](../GIAI_DOAN_A_CHUAN_BI/B01_DUNG_MOI_TRUONG.md) |
 | Vì sao Batch, vì sao cần MinIO? | [B2](../GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B02_THU_THAP_NAP_DU_LIEU_THO.md) |
 | Vì sao không chặn `Financial_Stress` về 5? | [B3](../GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B03_KIEM_TRA_CHAT_LUONG_DU_LIEU.md) |
-| Vì sao `Family_Income` được bfill mà `LMS_Logins` thì không? | [B4](../GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B04_LAM_SACH_DU_LIEU.md) |
+| `Family_Income` không đổi qua các kỳ, sao không bfill? (rò rỉ phát hiện nhờ SHAP) | [B4](../GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B04_LAM_SACH_DU_LIEU.md) |
 | Vì sao cần cả PostgreSQL và MongoDB? | [B5](../GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B05_NAP_KHO_POLYGLOT.md) |
 | Tương quan có phải nhân quả? | [B6](../GIAI_DOAN_C_PHAN_TICH_KHAI_PHA/B06_PHAN_TICH_KHAM_PHA_EDA.md) |
 | Điểm mới của đặc trưng chiều dọc? | [B7](../GIAI_DOAN_C_PHAN_TICH_KHAI_PHA/B07_TRICH_XUAT_DAC_TRUNG.md) |
@@ -98,6 +98,7 @@ Word / Google Docs, PowerPoint / Google Slides, OBS (quay màn hình), Git.
 | Vì sao chọn Logistic Regression mà không phải XGBoost? Đặc trưng chiều dọc có giúp không? | [B11](../GIAI_DOAN_D_HOC_MAY/B11_HUAN_LUYEN_TINH_CHINH.md) |
 | Vì sao không dùng ngưỡng 0,5? | [B12](../GIAI_DOAN_D_HOC_MAY/B12_DANH_GIA_CHON_NGUONG.md) |
 | SHAP khác feature importance thế nào? | [B13](../GIAI_DOAN_D_HOC_MAY/B13_GIAI_THICH_MO_HINH_SHAP.md) |
+| Sửa lỗi xong lại đánh giá Test lần 2, có phải "nhìn Test nhiều lần"? | [B13](../GIAI_DOAN_D_HOC_MAY/B13_GIAI_THICH_MO_HINH_SHAP.md), [B12](../GIAI_DOAN_D_HOC_MAY/B12_DANH_GIA_CHON_NGUONG.md) |
 | Vì sao không làm API thời gian thực? | [B14](../GIAI_DOAN_E_TRIEN_KHAI_VAN_HANH/B14_DU_DOAN_THEO_LO.md) |
 | Vì sao dùng cả Power BI và Streamlit? | [B15](../GIAI_DOAN_E_TRIEN_KHAI_VAN_HANH/B15_TRUC_QUAN_HOA_DASHBOARD.md) |
 | Khi nào huấn luyện lại mô hình? | [B16](../GIAI_DOAN_E_TRIEN_KHAI_VAN_HANH/B16_GIAM_SAT_VAN_HANH.md) |

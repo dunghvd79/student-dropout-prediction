@@ -74,7 +74,7 @@ Tách dữ liệu sạch thành **phần tĩnh** (PostgreSQL) và **phần biế
      first_generation BOOLEAN,
      household_size   INT,
      housing_status   VARCHAR(20),
-     family_income    NUMERIC(12,2),      -- NULL cho 199 sinh viên
+     family_income    NUMERIC(12,2),      -- giá trị đã khai báo (ở kỳ bất kỳ); NULL cho 199 sinh viên không khai báo
      income_missing   BOOLEAN
    );
    CREATE TABLE IF NOT EXISTS financial_profiles (
@@ -128,7 +128,7 @@ Tách dữ liệu sạch thành **phần tĩnh** (PostgreSQL) và **phần biế
 - [x] Mọi `student_id` trong MongoDB có trong `students` (khớp 100%).
 - [x] Chạy lại lần 2: số lượng không đổi (0 document thêm mới, 79.239 document được ghi đè cùng nội dung). `modified_count` của `replaceOne` luôn tính cả khi nội dung không đổi, nên không dùng làm thước đo.
 - [x] `load_analytic_table()` trả về dữ liệu giống hệt `clean_semesters.parquet`.
-- [x] `family_income` NULL đúng 199 sinh viên, khớp `income_missing = TRUE`. Document kỳ 5 của `STU_00001` khớp ví dụ trong `BAO_CAO_CSDL_GIUA_KY.md`.
+- [x] `family_income` NULL đúng 199 sinh viên, khớp `income_missing = TRUE`. Cờ theo kỳ ("chưa khai báo đến kỳ này") nằm ở MongoDB `socio_economic.income_missing` (bổ sung ở B13), nên bảng đọc lại vẫn trống `Family_Income` ở các kỳ chưa khai báo. Document kỳ 5 của `STU_00001` khớp ví dụ trong `BAO_CAO_CSDL_GIUA_KY.md`.
 - Thời gian chạy: khoảng 17 giây cho cả nạp và đối soát.
 
 ---

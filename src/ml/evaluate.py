@@ -1,14 +1,15 @@
 """Bước 12 – Chọn ngưỡng, đánh giá trên tập Test (MỘT LẦN), công bằng & đăng ký mô hình.
 
-Chạy:  python -m src.ml.evaluate [--force] [--no-register]
+Chạy:  python -m src.ml.evaluate [--force --reason "..."] [--no-register]
 
 Thứ tự (mọi lựa chọn chốt trên Train TRƯỚC khi nhìn Test):
   1. Cấu hình cuối: LogReg, tham số từ B11, KHÔNG trọng số lớp. LogReg học bằng log-loss nên xác suất
-     đã được hiệu chỉnh tốt (Brier OOF 0,0742 = bằng isotonic / sigmoid); mất cân bằng xử lý bằng ngưỡng.
+     đã được hiệu chỉnh tốt (Brier OOF ≈ 0,075, bằng isotonic / sigmoid); mất cân bằng xử lý bằng ngưỡng.
   2. Dự đoán out-of-fold trên Train → chọn 2 mốc rủi ro theo chính sách trong settings.yaml
      → config/risk_thresholds.json.
   3. Huấn luyện lại trên toàn bộ Train.
-  4. Đánh giá Test một lần (có chốt chặn: reports/test_metrics.json đã tồn tại thì từ chối, trừ khi --force).
+  4. Đánh giá Test một lần (chốt chặn: reports/test_metrics.json đã tồn tại thì từ chối, trừ khi --force kèm
+     --reason; lần đánh giá cũ và lý do được giữ trong "history" và in ở đầu báo cáo).
      Kèm phân tích công bằng, ca bỏ sót, và 2 đối chứng phụ (không dùng để chọn): ablation, XGBoost.
   5. Đăng ký MLflow Model Registry: dropout_model, alias "production".
 """
@@ -207,15 +208,18 @@ def write_report(res: dict, figs) -> None:
     sec = res["secondary"]
     lines = [
         "# BÁO CÁO ĐÁNH GIÁ MÔ HÌNH (B12)",
-        f"*Sinh tự động bởi `python -m src.ml.evaluate` lúc {res['evaluated_at']}. Tập Test được dùng **một lần**; mọi lựa chọn chốt trên Train trước đó.*",
+        f"*Sinh tự động bởi `python -m src.ml.evaluate` lúc {res['evaluated_at']}. Mọi lựa chọn chốt trên Train trước khi nhìn Test; "
+        f"đây là lần đánh giá Test thứ **{res['test_runs']}**.*",
         "",
+        *([f"> **Lần đánh giá Test trước** ({h['evaluated_at']}, PR-AUC {h['test_pr_auc']:.4f}) bị thay thế. "
+           f"Lý do đánh giá lại: {h['rerun_reason']}" for h in res.get("history", [])] + [""] if res.get("history") else []),
         f"* **Mô hình:** Logistic Regression, `C = {res['config']['params']['C']:.3f}`, không trọng số lớp, {res['n_features']} đặc trưng.",
         f"* **Train:** {res['n_train']:,} dòng · **Test:** {res['n_test']:,} dòng ({res['n_test_students']:,} sinh viên), tỷ lệ bỏ học {_pct(ov['positive_rate'])}.",
         f"* **Mốc rủi ro** (chọn trên OOF Train): Trung bình ≥ **{t['medium']:.4f}** (Recall OOF ≥ 0,80) · Cao ≥ **{t['high']:.4f}** (Precision OOF ≥ 0,50).",
         "",
         "## 1. Kết quả tổng thể",
         "",
-        "| Chỉ số | OOF Train (để chọn) | **Test (một lần)** |",
+        "| Chỉ số | OOF Train (để chọn) | **Test** |",
         "|---|---:|---:|",
         f"| PR-AUC | {oof['pr_auc']:.4f} | **{ov['pr_auc']:.4f}** |",
         f"| ROC-AUC | {oof['roc_auc']:.4f} | **{ov['roc_auc']:.4f}** |",
@@ -267,7 +271,8 @@ def register(model, res, X_example) -> str:
     mlflow.set_tracking_uri(cfg["tracking_uri"])
     mlflow.set_experiment(cfg["experiment"])
     with mlflow.start_run(run_name="final-logreg-test") as run:
-        mlflow.set_tags({"stage": "final", "test_evaluated_once": "true"})
+        mlflow.set_tags({"stage": "final", "test_runs": str(res["test_runs"]),
+                         "rerun_reason": res["history"][-1]["rerun_reason"] if res.get("history") else ""})
         mlflow.log_params({"model": "logreg", "imbalance": FINAL_IMBALANCE, "C": res["config"]["params"]["C"],
                            "n_features": res["n_features"], "threshold_medium": res["thresholds"]["medium"],
                            "threshold_high": res["thresholds"]["high"]})
@@ -299,15 +304,23 @@ def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description="B12 – chọn ngưỡng, đánh giá Test một lần, đăng ký mô hình.")
     parser.add_argument("--force", action="store_true", help="Cho phép đánh giá lại Test (ghi rõ trong báo cáo)")
+    parser.add_argument("--reason", default="", help="Bắt buộc khi --force: lý do đánh giá lại (ghi vào báo cáo)")
     parser.add_argument("--no-register", action="store_true")
     args = parser.parse_args()
 
     metrics_path = reports_dir() / "test_metrics.json"
     if metrics_path.exists() and not args.force:
         print(f"Tập Test đã được đánh giá ({metrics_path}). Không đánh giá lại để tránh 'nhìn Test nhiều lần'. "
-              "Dùng --force nếu thật sự cần (sẽ được ghi nhận).")
+              "Dùng --force --reason \"...\" nếu thật sự cần (sẽ được ghi nhận).")
         return 1
-    previous_runs = json.loads(metrics_path.read_text(encoding="utf-8")).get("test_runs", 0) if metrics_path.exists() else 0
+    if metrics_path.exists() and not args.reason:
+        print("Đánh giá lại Test cần --reason \"...\" để ghi vào báo cáo.")
+        return 1
+    previous = json.loads(metrics_path.read_text(encoding="utf-8")) if metrics_path.exists() else {}
+    previous_runs = previous.get("test_runs", 0)
+    history = previous.get("history", []) + ([{
+        "evaluated_at": previous["evaluated_at"], "test_pr_auc": previous["test"]["pr_auc"],
+        "thresholds": previous["thresholds"], "rerun_reason": args.reason}] if previous else [])
 
     splits, spec = load_splits(), load_spec()
     cfg = final_config()
@@ -337,7 +350,7 @@ def main() -> int:
                     splits.X_train, splits.y_train, spec)
     fair = fairness_table(splits.X_test, y_test, p_test, thresholds["medium"])
     res = {
-        "evaluated_at": f"{datetime.now():%Y-%m-%d %H:%M}", "test_runs": previous_runs + 1,
+        "evaluated_at": f"{datetime.now():%Y-%m-%d %H:%M}", "test_runs": previous_runs + 1, "history": history,
         "config": cfg, "thresholds": thresholds, "n_features": len(spec["features"]),
         "n_train": len(splits.y_train), "n_test": len(y_test), "n_test_students": int(splits.groups_test.nunique()),
         "oof": overall_metrics(splits.y_train.values, p_oof, thresholds),

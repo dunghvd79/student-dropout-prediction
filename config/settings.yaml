@@ -50,6 +50,9 @@ split:
 
 model:
   primary_metric: average_precision   # PR-AUC
+  # Quyết định của nhóm (B11, xác nhận lại ở B13 sau khi sửa rò rỉ Income_Missing): XGBoost nhỉnh hơn 0,003 PR-AUC
+  # (3 seed × 5 fold) nhưng chênh không đáng kể thực tế → giữ LogReg vì đơn giản, giải thích chính xác.
+  final: logreg
 
 risk_levels:
   # CHÍNH SÁCH (nhóm chốt ở B12). Mốc xác suất cụ thể được B12 tính trên dự đoán out-of-fold của Train

@@ -8,6 +8,10 @@ Tách dữ liệu:
               financial_profiles  – scholarship, tuition_base            (1 dòng / sinh viên)
   MongoDB     academic_semesters  – 1 document / (sinh viên, học kỳ), các object lồng nhau
 
+Thu nhập: students.family_income là giá trị sinh viên đã khai báo (ở bất kỳ kỳ nào), income_missing = không
+khai báo ở kỳ nào. Việc "đã biết thu nhập tại kỳ t" lưu theo kỳ trong MongoDB (socio_economic.income_missing);
+bảng phẳng đọc lại để trống Family_Income ở các kỳ chưa khai báo, đúng như bảng sạch của B4.
+
 Nạp kiểu upsert nên chạy lại bao nhiêu lần số lượng vẫn đúng (idempotent).
 Hàm load_analytic_table() đọc lại 2 CSDL và trả về bảng phẳng giống clean_semesters.parquet.
 """
@@ -26,8 +30,7 @@ from src.etl.clean import FLOAT_COLUMNS, INT_COLUMNS, OUTPUT_COLUMNS
 # Cột (tên gốc) → cột PostgreSQL
 STUDENT_FIELDS = {
     "Student_ID": "student_id", "Age": "age", "Gender": "gender", "First_Generation": "first_generation",
-    "Household_Size": "household_size", "Housing_Status": "housing_status",
-    "Family_Income": "family_income", "Income_Missing": "income_missing",
+    "Household_Size": "household_size", "Housing_Status": "housing_status", "Family_Income": "family_income",
 }
 PROFILE_FIELDS = {"Student_ID": "student_id", "Scholarship": "scholarship", "Tuition_Base": "tuition_base"}
 BOOL_FIELDS = {"first_generation", "income_missing", "scholarship"}
@@ -38,7 +41,7 @@ DOC_LAYOUT = {
     "engagement": {"Attendance": "attendance", "LMS_Logins": "lms_logins",
                    "Advising_Visits": "advising_visits", "LMS_Missing": "lms_missing"},
     "socio_economic": {"Work_Hours": "work_hours", "Financial_Stress": "financial_stress",
-                       "Emergency_Expense": "emergency_expense"},
+                       "Emergency_Expense": "emergency_expense", "Income_Missing": "income_missing"},
     "outcome": {"Target_Dropout_Next_Sem": "target_dropout_next_sem",
                 "End_of_Semester_Status": "end_of_semester_status", "Censored": "censored"},
 }
@@ -48,8 +51,13 @@ DOC_LAYOUT = {
 
 def split_static(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Lấy 1 dòng / sinh viên cho 2 bảng tĩnh (cột tĩnh đã được B3/B4 kiểm tra không đổi)."""
-    first = df.sort_values(["Student_ID", "Semester"]).drop_duplicates("Student_ID")
+    df = df.sort_values(["Student_ID", "Semester"])
+    first = df.drop_duplicates("Student_ID").set_index("Student_ID")
+    # Thu nhập có thể chỉ được khai báo từ kỳ sau (kỳ đầu để trống) → lấy giá trị khai báo đầu tiên
+    first["Family_Income"] = df.groupby("Student_ID")["Family_Income"].first()
+    first = first.reset_index()
     students = first[list(STUDENT_FIELDS)].rename(columns=STUDENT_FIELDS)
+    students["income_missing"] = students["family_income"].isna()
     profiles = first[list(PROFILE_FIELDS)].rename(columns=PROFILE_FIELDS)
     for frame in (students, profiles):
         for col in BOOL_FIELDS & set(frame.columns):
@@ -92,6 +100,22 @@ def restore_types(df: pd.DataFrame) -> pd.DataFrame:
     for col in ("Student_ID", "Gender", "Housing_Status", "End_of_Semester_Status"):
         df[col] = df[col].astype("string")
     return df.sort_values(["Student_ID", "Semester"]).reset_index(drop=True)
+
+
+def merge_static(semesters: pd.DataFrame, static: pd.DataFrame) -> pd.DataFrame:
+    """Ghép phần theo kỳ (MongoDB) với phần tĩnh (PostgreSQL, đã đổi về tên gốc) → bảng phẳng như B4."""
+    df = semesters.merge(static, on="Student_ID", how="left", validate="many_to_one")
+    df.loc[df["Income_Missing"] == 1, "Family_Income"] = float("nan")  # kỳ chưa khai báo: chưa biết thu nhập
+    return restore_types(df)
+
+
+def static_from_tables(students: pd.DataFrame, profiles: pd.DataFrame) -> pd.DataFrame:
+    """students + financial_profiles (tên cột PostgreSQL) → khung tĩnh với tên cột gốc."""
+    static = students.drop(columns="income_missing").merge(profiles, on="student_id")
+    static = static.rename(columns={v: k for k, v in {**STUDENT_FIELDS, **PROFILE_FIELDS}.items()})
+    for col in ("First_Generation", "Scholarship"):
+        static[col] = static[col].astype(int)
+    return static
 
 
 # ---------------------------------------------------------------- PostgreSQL
@@ -151,23 +175,18 @@ def load_mongo(df: pd.DataFrame, batch_size: int = 5000) -> dict:
 def load_analytic_table() -> pd.DataFrame:
     """Đọc PostgreSQL + MongoDB, ghép theo student_id → bảng phẳng giống clean_semesters.parquet."""
     with db.pg_engine().connect() as conn:
-        static = pd.read_sql(text(
-            "SELECT s.student_id, s.age, s.gender, s.first_generation, s.household_size, s.housing_status, "
-            "s.family_income::float8 AS family_income, s.income_missing, "
-            "f.scholarship, f.tuition_base::float8 AS tuition_base "
-            "FROM students s JOIN financial_profiles f USING (student_id)"
-        ), conn)
-    rename = {v: k for k, v in {**STUDENT_FIELDS, **PROFILE_FIELDS}.items()}
-    static = static.rename(columns=rename)
-    for col in ("First_Generation", "Income_Missing", "Scholarship"):
-        static[col] = static[col].astype(int)
+        students = pd.read_sql(text(
+            "SELECT student_id, age, gender, first_generation, household_size, housing_status, "
+            "family_income::float8 AS family_income, income_missing FROM students"), conn)
+        profiles = pd.read_sql(text(
+            "SELECT student_id, scholarship, tuition_base::float8 AS tuition_base FROM financial_profiles"), conn)
 
     client, coll = mongo_collection()
     try:
         semesters = from_documents(list(coll.find({}, {"_id": 0})))
     finally:
         client.close()
-    return restore_types(semesters.merge(static, on="Student_ID", how="left", validate="many_to_one"))
+    return merge_static(semesters, static_from_tables(students, profiles))
 
 
 def reconcile(expected_students: int, expected_rows: int) -> list[tuple[str, bool, str]]:

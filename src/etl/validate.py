@@ -307,7 +307,7 @@ def make_figures(df: pd.DataFrame, fig_dir: Path) -> list[tuple[str, str]]:
 DECISIONS = """\
 | # | Vấn đề | Quyết định xử lý | Bước |
 |:---:|---|---|:---:|
-| 1 | `Family_Income` thiếu | Điền theo sinh viên (ffill + bfill, vì là thuộc tính tĩnh); còn trống thì cờ `Income_Missing`, trung vị trong Pipeline | B4, B10 |
+| 1 | `Family_Income` thiếu | Ffill theo sinh viên (không bfill: kỳ chưa khai báo thì chưa biết thu nhập); còn trống thì cờ `Income_Missing`, trung vị trong Pipeline | B4, B10 |
 | 2 | `LMS_Logins` thiếu | Forward-fill theo sinh viên (không bfill) + cờ `LMS_Missing`; còn trống thì trung vị trong Pipeline | B4, B10 |
 | 3 | `Attendance` ngoài [0, 100] | Giá trị âm luôn là −2 (mã lỗi; kỳ trước/sau quanh 86%) → coi là thiếu, điền bằng kỳ trước; > 100 (101, 105) → clip về 100 | B4 |
 | 4 | `Financial_Stress` vượt thang 1 – 5 | Giữ nguyên; winsorize P99 / `log1p` chỉ cho mô hình tuyến tính | B10 |

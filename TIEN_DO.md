@@ -1,5 +1,5 @@
 # TIẾN ĐỘ DỰ ÁN
-**Cập nhật lần cuối:** 2026-10-26 · **Commit mới nhất:** `Buoc 12: danh gia tren Test, chon nguong, dang ky mo hinh`  
+**Cập nhật lần cuối:** 2026-10-26 · **Commit mới nhất:** `Buoc 13: giai thich SHAP, sua ro ri Income_Missing`  
 **Quy trình chi tiết:** [`QUY_TRINH_DU_AN/`](./QUY_TRINH_DU_AN/README.md)
 
 > Cập nhật file này mỗi khi xong một bước: đổi trạng thái, ghi commit, thêm quyết định / vấn đề mới.
@@ -23,13 +23,13 @@
 | | B10 Tiền xử lý & mất cân bằng | ✅ Xong |
 | | B11 Huấn luyện & tinh chỉnh | ✅ Xong |
 | | B12 Đánh giá & chọn ngưỡng | ✅ Xong |
-| | B13 Giải thích SHAP | ⏭️ **Làm tiếp theo** |
-| **E – Triển khai & Vận hành** | B14 Dự đoán theo lô | ⬜ Chưa làm |
+| | B13 Giải thích SHAP | ✅ Xong |
+| **E – Triển khai & Vận hành** | B14 Dự đoán theo lô | ⏭️ **Làm tiếp theo** |
 | | B15 Dashboard | ⬜ Chưa làm |
 | | B16 Giám sát & vận hành | ⬜ Chưa làm |
 | **F – Kết thúc** | B17 Báo cáo & bảo vệ | ⬜ Chưa làm |
 
-**Hoàn thành: 13 / 18 bước** (Giai đoạn A, B, C xong; Giai đoạn D: 4/5).
+**Hoàn thành: 14 / 18 bước** (Giai đoạn A, B, C, D xong).
 
 ---
 
@@ -59,7 +59,7 @@
 
 ### B4 – Làm sạch dữ liệu ✅ (commit "Buoc 4: lam sach du lieu")
 * `python -m src.etl.clean` → `data/processed/clean_semesters.parquet` (79.239 × 24) + `s3://processed/academic/batch_id=20261011T085849Z_7df267/clean_semesters.parquet`.
-* Gender đổi cách ghi 4.648 dòng; `Attendance`: clip 164 dòng > 100, 85 dòng mã lỗi −2 → thiếu, điền bằng kỳ trước (sửa ở B7, trước đó clip về 0); điền `Family_Income` 3.387 (còn 217 dòng / 199 sinh viên → `Income_Missing`); điền `LMS_Logins` 658 (còn 209).
+* Gender đổi cách ghi 4.648 dòng; `Attendance`: clip 164 dòng > 100, 85 dòng mã lỗi −2 → thiếu, điền bằng kỳ trước (sửa ở B7, trước đó clip về 0); điền `Family_Income` bằng kỳ trước 2.574 (còn 1.030 dòng chưa khai báo đến kỳ đó → `Income_Missing`; 199 sinh viên không khai báo ở kỳ nào; **sửa ở B13**: trước đó ffill + bfill); điền `LMS_Logins` 658 (còn 209).
 * 7/7 kiểm tra sau làm sạch đạt; chạy 2 lần cho file Parquet giống hệt (MD5 `deacca08…`); file hỏng bị chặn. 31/31 unit test đạt.
 * File: `src/etl/clean.py`, `tests/test_clean.py`, `reports/cleaning_log.md`.
 
@@ -80,7 +80,7 @@
 
 ### B6 – EDA ✅ (commit "Buoc 6: EDA")
 * Notebook `notebooks/01_data_cleaning_eda.ipynb` (đã chạy, 8 biểu đồ nhúng) + `reports/figures/eda_*.png`.
-* 10 insight; nổi bật: GPA tụt ≥ 0,5 → 32,5% bỏ học; nợ tích lũy ≥ 6 môn → 21,5%; nhóm bỏ học có áp lực tài chính tăng dần trong 4 kỳ trước khi bỏ (nhóm tốt nghiệp đi ngang); không khai báo thu nhập → 84,7% (118 dòng); gặp cố vấn nhiều hơn ở nhóm bỏ học (nhân quả ngược).
+* 10 insight; nổi bật: GPA tụt ≥ 0,5 → 32,5% bỏ học; nợ tích lũy ≥ 6 môn → 21,5%; nhóm bỏ học có áp lực tài chính tăng dần trong 4 kỳ trước khi bỏ (nhóm tốt nghiệp đi ngang); chưa khai báo thu nhập → 10,7% ≈ mức nền (bản đầu báo 84,7% / 118 dòng là do rò rỉ, sửa ở B13); gặp cố vấn nhiều hơn ở nhóm bỏ học (nhân quả ngược).
 * Sửa lỗi phát sinh: `src/etl/validate.py` gọi `matplotlib.use("Agg")` khi import, làm notebook không hiển thị được biểu đồ → chuyển sang vẽ bằng `matplotlib.figure.Figure`, không đổi backend toàn cục.
 
 ### B7 – Trích xuất đặc trưng ✅ (commit "Buoc 7: trich xuat dac trung")
@@ -116,33 +116,45 @@
 * Chạy thử trên 1 fold CV (không dùng Test): mọi mô hình vượt xa mốc 0,106; **LogReg 0,414 nhỉnh hơn XGBoost / LightGBM 0,395** với tham số mặc định, nên B11 phải kiểm chứng.
 * Ghim `scipy==1.14.1` (trước đó chưa ghim, bản 1.18 gây cảnh báo với scikit-learn 1.5.2).
 
-### B11 – Huấn luyện & tinh chỉnh ✅ (commit "Buoc 11: huan luyen, tinh chinh, ablation")
+### B11 – Huấn luyện & tinh chỉnh ✅ (commit "Buoc 11: huan luyen, tinh chinh, ablation"; số liệu dưới đây là bản chạy lại ở B13 sau khi sửa rò rỉ)
 * `python -m src.ml.experiments`: so sánh 12 cấu hình (CV 5 fold theo sinh viên), Optuna 40 thử nghiệm cho LogReg + XGBoost, ablation; mọi lần chạy ghi vào MLflow `dropout_ews`.
-* **Kết quả:** LogReg 0,4095 dẫn đầu khi dùng tham số mặc định; sau tinh chỉnh LogReg 0,4097 ≈ XGBoost 0,4090 (`max_depth = 2`). **Chọn LogReg** (`C = 1,22`, trọng số lớp, 43 đặc trưng); dự đoán OOF lưu `data/models/oof_best.parquet`.
+* **Kết quả:** LogReg 0,3980 dẫn đầu khi dùng tham số mặc định; sau tinh chỉnh LogReg 0,3982 (`C = 0,011`), XGBoost 0,3998 (`max_depth = 2`). So theo cặp 3 seed × 5 fold: XGBoost hơn +0,0028 [+0,0011; +0,0046], ~0,7%. **Nhóm chọn giữ LogReg** (`model.final` trong settings.yaml); dự đoán OOF lưu `data/models/oof_best.parquet`. Bản đầu (có rò rỉ): LogReg 0,4097, XGBoost 0,4090.
 * **Phát hiện quan trọng:**
-  1. **Đặc trưng chiều dọc không cải thiện dự báo** (LogReg 0,4090 → 0,4097, chỉ tốt hơn 2/5 fold; XGBoost còn giảm; kỳ ≥ 3 cũng không khác).
+  1. **Đặc trưng chiều dọc không cải thiện dự báo** (LogReg 0,3978 → 0,3982, chỉ tốt hơn 2/5 fold; XGBoost còn giảm; kỳ ≥ 3 cũng không khác).
   2. SMOTE làm giảm PR-AUC; ban đầu còn mất tác dụng âm thầm với mô hình cây do nội suy cột rời rạc (đã sửa bằng SMOTENC).
   3. Trọng số lớp không đổi PR-AUC, chỉ đổi ngưỡng.
-* **Kiểm chứng độ vững:** lặp CV 3 seed × 5 fold: LogReg +0,0008 (khoảng tin cậy chứa 0), XGBoost −0,0019; pipeline đủ 47 cột; chỉ đặc trưng chiều dọc đạt 0,354 ⇒ có thông tin nhưng trùng với trạng thái hiện tại.
+* **Kiểm chứng độ vững:** lặp CV 3 seed × 5 fold: LogReg +0,0003 (khoảng tin cậy chứa 0), XGBoost −0,0014; pipeline đủ 47 cột; chỉ đặc trưng chiều dọc đạt 0,352 ⇒ có thông tin nhưng trùng với trạng thái hiện tại.
 * Sửa lỗi: tham số Optuna trùng tham số đặt cứng trong `build_model`. 12 test mới; tổng 96/96 đạt. Notebook `04_machine_learning_models.ipynb` (phần B9 – B11).
 
 ### B12 – Đánh giá trên Test & đăng ký mô hình ✅ (commit `Buoc 12`)
-* Chọn trên Train: LogReg **không trọng số lớp** (đã hiệu chỉnh sẵn, Brier OOF 0,0742, không cần isotonic); mốc rủi ro trên OOF: Trung bình ≥ 0,0704 (Recall ≥ 0,80), Cao ≥ 0,3153 (Precision ≥ 0,50) → `config/risk_thresholds.json`.
-* **Test (một lần):** PR-AUC 0,400, ROC-AUC 0,810, Brier 0,077 (sát OOF, không overfit). Recall 0,827 / Precision 0,208 tại mốc Trung bình; mức Cao: 6,0% sinh viên, 49,3% thật sự bỏ học.
-* Công bằng: Nữ / Nam như nhau; Recall thấp hơn ở nhóm rủi ro nền thấp (có học bổng 0,76, kỳ 1 0,79). Ca bỏ sót có hồ sơ "bình thường", nguyên nhân nằm ngoài dữ liệu.
-* MLflow Registry: `dropout_model` v1, alias `production` (tải lại khớp). `src/ml/evaluate.py` có chốt chặn chống đánh giá Test nhiều lần. 6 test mới; tổng 102/102 đạt.
+* Chọn trên Train: LogReg **không trọng số lớp** (đã hiệu chỉnh sẵn, Brier OOF 0,0749, không cần isotonic); mốc rủi ro trên OOF: Trung bình ≥ 0,0717 (Recall ≥ 0,80), Cao ≥ 0,3175 (Precision ≥ 0,50) → `config/risk_thresholds.json`.
+* **Test (lần 2, sau khi sửa rò rỉ ở B13; lần 1: PR-AUC 0,400, Recall 0,827):** PR-AUC 0,391, ROC-AUC 0,808, Brier 0,078 (sát OOF, không overfit). Recall 0,820 / Precision 0,205 tại mốc Trung bình; mức Cao: 5,7% sinh viên, 49,7% thật sự bỏ học.
+* Công bằng: Nữ / Nam như nhau; Recall thấp hơn ở nhóm rủi ro nền thấp (có học bổng 0,76, kỳ 1 0,77). Ca bỏ sót có hồ sơ "bình thường", nguyên nhân nằm ngoài dữ liệu.
+* MLflow Registry: `dropout_model` **v2**, alias `production` (tải lại khớp; v1 là bản có rò rỉ). `src/ml/evaluate.py` có chốt chặn: đánh giá lại Test phải có `--force --reason`, lịch sử ghi trong `test_metrics.json` và tag MLflow.
+
+### B13 – Giải thích mô hình (SHAP) ✅ (commit `Buoc 13`)
+* `python -m src.ml.explain`: `shap.LinearExplainer` (chính xác, φ = β(x − E[x]) trên log-odds), cộng One-Hot về biến gốc, **gom 13 nhóm khái niệm**; tính cộng sai số 1,8e-15. Báo cáo `reports/explanation_report.md`, `shap_group_importance.csv`, 7 biểu đồ `shap_*.png`; notebook 04 mục 8.
+* Nhóm quan trọng nhất: Kết quả học tập 19,8% > Trượt môn 18,4% > Thế hệ đầu 16,0% ≈ Áp lực tài chính 15,9% > Học bổng 11,9%; nhất quán với EDA và luật B8. Lý do số 1 ở mức Cao: học tập 47%, trượt môn 32%, tài chính 21%.
+* `top_reasons()` → 3 lý do bằng câu tiếng Việt có giá trị thật; không nêu nhóm nhân khẩu & nơi ở, gặp cố vấn (không can thiệp được / nhân quả ngược). Dùng ở B14 / B16.
+* **Phát hiện rò rỉ:** `Income_Missing` hệ số 3,50 (biến kế tiếp 0,84). Cờ cũ "không khai báo ở kỳ nào" (ffill + bfill ở B4) nhìn trước tương lai: 84,7% bỏ học so với 10,7% khi tính đúng thời điểm. **Đã sửa:**
+  1. B4 chỉ ffill.
+  2. B5 lưu cờ theo kỳ ở MongoDB (`socio_economic.income_missing`), round-trip vẫn khớp.
+  3. Chạy lại B7 → B12. PR-AUC giảm ~0,011 ở mọi mô hình; Test đánh giá lại lần 2 có ghi lý do.
+* Sau khi sửa, XGBoost nhỉnh hơn LogReg 0,003 (có ý nghĩa thống kê, ~0,7%) → **nhóm chọn giữ LogReg**.
+* Hệ số ngược dấu được liệt kê tự động: lần đầu `GPA_Roll3`; hiện tại `Work_prev` / `Work_Hours`.
+* 9 test mới (`test_explain.py`) + test B4 / B5 cho thu nhập đúng thời điểm; tổng 112/112 đạt. Notebook 01, 02, 04 chạy lại, 0 lỗi.
 
 ---
 
-## 3. Việc tiếp theo: B13 – Giải thích mô hình (SHAP)
+## 3. Việc tiếp theo: B14 – Dự đoán theo lô (Batch Scoring)
 
-Chi tiết: [`B13_GIAI_THICH_MO_HINH_SHAP.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_MAY/B13_GIAI_THICH_MO_HINH_SHAP.md)
+Chi tiết: [`B14_DU_DOAN_THEO_LO.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_E_TRIEN_KHAI_VAN_HANH/B14_DU_DOAN_THEO_LO.md)
 
-- [ ] Mô hình là LogReg nên dùng **`shap.LinearExplainer`** (chính xác, nhanh) thay cho `TreeExplainer`; cập nhật B13 tương ứng.
-- [ ] Giải thích toàn cục (bar, beeswarm), dependence cho 3 – 5 đặc trưng; **cộng SHAP theo nhóm** (nhóm GPA, nhóm môn trượt, nhóm tài chính) vì các đặc trưng trùng thông tin.
-- [ ] Giải thích cục bộ (waterfall) cho vài sinh viên mức Cao / bị bỏ sót.
-- [ ] `src/ml/explain.py`: hàm `top_reasons(row, k=3)` dịch sang tiếng Việt, dùng cho B14 / Streamlit.
-- [ ] Kiểm tra mức phụ thuộc vào `Income_Missing` (EDA: 84,7% bỏ học, chỉ 118 dòng).
+- [ ] Tải mô hình từ `models:/dropout_model@production`; chấm 11.115 dòng scoring set (`Censored = 1`).
+- [ ] Kiểm tra schema đặc trưng khớp `feature_spec.json` trước khi dự đoán.
+- [ ] Mức rủi ro theo `config/risk_thresholds.json` (không đọc mốc cứng trong settings).
+- [ ] Lý do bằng `explain()` + `top_reasons()` (nền SHAP = Train); ghi `predictions` (upsert theo `(run_id, student_id)`), kèm `model_version`.
+- [ ] Kiểm tra: không có `risk_score` NULL; phân bố mức rủi ro hợp lý.
 
 ---
 
@@ -172,7 +184,7 @@ Chi tiết: [`B13_GIAI_THICH_MO_HINH_SHAP.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC
 |:---:|---|---|---|
 | 1 | Loại 11.115 dòng `Censored = 1` khỏi Train/Test, dùng làm tập chấm điểm | Nhãn 0 của các dòng này chưa xác nhận | THIET_KE_PIPELINE, B03, B09 |
 | 2 | Không chặn `Financial_Stress` về 5 | Tỷ lệ bỏ học tăng đều theo chỉ số (5,3% → 50,2% trên tập có nhãn), giá trị cao là tín hiệu thật | THIET_KE_PIPELINE, B03 |
-| 3 | `Family_Income` điền theo sinh viên trước (ffill + bfill), sau đó mới dùng trung vị | Cột không đổi theo kỳ; khôi phục được 94% số dòng thiếu | THIET_KE_PIPELINE, B04 |
+| 3 | `Family_Income` chỉ ffill theo sinh viên (**sửa ở B13**, trước đó ffill + bfill), còn thiếu thì cờ `Income_Missing` + trung vị | Giá trị không đổi nhưng *việc biết* giá trị phụ thuộc thời gian; bfill tạo rò rỉ (SHAP phát hiện) | THIET_KE_PIPELINE, B04, B13 |
 | 4 | `emergency_expense` chuyển sang MongoDB | Thay đổi theo kỳ, không phải thuộc tính tĩnh | BAO_CAO_CSDL_GIUA_KY, B05 |
 | 5 | Dùng `bitnamilegacy/minio` thay `minio/minio` | Image chính thức đã bị gỡ khỏi Docker Hub và quay.io | B01, docker-compose |
 | 6 | PostgreSQL cổng **5433**, MongoDB cổng **27018** | Máy đã có `sdl_postgres` (5432) và MongoDB service (27017) | B01, `.env.example` |
@@ -181,10 +193,12 @@ Chi tiết: [`B13_GIAI_THICH_MO_HINH_SHAP.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC
 | 9 | Key MinIO thêm `batch_id=…` | Nạp nhiều lần trong cùng ngày không ghi đè lô cũ | B02 |
 | 10 | `Attendance = −2` coi là thiếu, điền bằng kỳ trước (chỉ clip > 100) | −2 là mã lỗi (kỳ trước / sau ~86%); clip về 0 tạo cú sụt giả | B03, B04, B07, THIET_KE_PIPELINE |
 | 11 | Không dùng SMOTE; dùng trọng số lớp | SMOTE (kể cả SMOTENC) giảm PR-AUC ở cả 3 mô hình vì phá ràng buộc giữa các đặc trưng | B10, B11 |
-| 12 | Mô hình cuối là **Logistic Regression** (không phải XGBoost như thiết kế ban đầu) | Ngang XGBoost tinh chỉnh (0,4097 so với 0,4090) nhưng đơn giản, ổn định, dễ giải thích | B11, THIET_KE_PIPELINE, README |
+| 12 | Mô hình cuối là **Logistic Regression** (không phải XGBoost như thiết kế ban đầu); xác nhận lại ở B13 (`model.final`) | Sau khi sửa rò rỉ XGBoost chỉ hơn 0,003 PR-AUC (~0,7%); LogReg đơn giản, ổn định, giải thích chính xác | B11, B13, THIET_KE_PIPELINE, README |
 | 13 | Trình bày dữ liệu chiều dọc là giá trị **mô tả / giải thích**, không phải độ chính xác | Ablation 3 seed × 5 fold: không cải thiện PR-AUC | README, PROJECT_OVERVIEW, B06, B07, B11 |
 | 14 | LogReg cuối **không dùng trọng số lớp**, không thêm bước hiệu chỉnh | Đã hiệu chỉnh sẵn (Brier bằng isotonic), PR-AUC cao nhất; mất cân bằng xử lý bằng ngưỡng | B12 |
-| 15 | 3 mức rủi ro theo chính sách: Cao = Precision ≥ 0,5 (0,315), Trung bình = Recall ≥ 0,80 (0,070) thay cho mốc cố định 0,3 / 0,6 | Mốc cố định 0,3 / 0,6 chỉ bắt ~34% ca bỏ học | B12, settings.yaml, THIET_KE_PIPELINE |
+| 15 | 3 mức rủi ro theo chính sách: Cao = Precision ≥ 0,5 (0,318), Trung bình = Recall ≥ 0,80 (0,072) thay cho mốc cố định 0,3 / 0,6 | Mốc cố định 0,3 / 0,6 chỉ bắt ~34% ca bỏ học | B12, settings.yaml, THIET_KE_PIPELINE |
+| 16 | Lý do cảnh báo đọc theo **13 nhóm SHAP**, không theo từng biến; không nêu nhân khẩu / gặp cố vấn làm lý do | Biến tương quan làm hệ số ngược dấu; nhân khẩu không can thiệp được, cố vấn là nhân quả ngược | B13 |
+| 17 | Đánh giá Test lần 2 (có `--reason`) sau khi sửa rò rỉ | Lỗi phát hiện độc lập trên Train; mô hình và ngưỡng chốt trước, không dùng Test để chọn | B12, B13 |
 
 ---
 
@@ -194,7 +208,7 @@ Chi tiết: [`B13_GIAI_THICH_MO_HINH_SHAP.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC
 docker compose up -d          # bật lại MinIO, PostgreSQL, MongoDB, MLflow
 .venv\Scripts\activate
 python -m src.ops.check_env       # phải báo "Tất cả đều sẵn sàng"
-python -m pytest              # 102/102 đạt
+python -m pytest              # 112/112 đạt
 ```
 
 * Muốn giải phóng RAM khi không làm: `docker compose stop` (dữ liệu vẫn giữ trong volume).
@@ -206,5 +220,6 @@ python -m pytest              # 102/102 đạt
 
 - [x] **Cách trình bày "điểm độc đáo":** đã sửa README, PROJECT_OVERVIEW, B06, B07, B11, B17, THIET_KE_PIPELINE theo hướng "quỹ đạo giúp mô tả / giải thích, đã kiểm chứng là không tăng độ chính xác"; bổ sung kiểm chứng độ vững. Nhóm nên đọc lại trước khi bảo vệ.
 - [ ] Các thành viên khác chưa thử dựng lại môi trường trên máy của mình (tiêu chí cuối của B1).
-- [x] Tiêu chí thành công ở B0: đạt ở B12 (Recall Test 0,827 tại mốc Trung bình; PR-AUC 0,400 so với mốc 0,10).
+- [x] Tiêu chí thành công ở B0: đạt (Recall Test 0,820 tại mốc Trung bình; PR-AUC 0,391 so với mốc 0,10; giải thích từng sinh viên bằng SHAP ở B13).
+- [ ] MLflow còn các run của lần chạy đầu (có rò rỉ) và `dropout_model` v1: giữ làm lịch sử hay xóa trước khi demo.
 - [ ] Dòng `FAILED` thử nghiệm trong `ingestion_log`: giữ làm bằng chứng hay xóa trước khi demo.

@@ -277,7 +277,9 @@ def stage_ablation(splits, spec, tracker) -> dict:
     ablation.to_csv(config.path("reports_dir") / "ablation.csv", index=False, encoding="utf-8-sig")
 
     full = ablation[ablation["feature_set"] == "full"].sort_values("pr_auc_mean", ascending=False)
-    best_name = full["model"].iloc[0]
+    best_by_cv = full["model"].iloc[0]
+    # Mô hình cuối do nhóm chốt trong settings.yaml (model.final); không có thì lấy PR-AUC CV cao nhất
+    best_name = config.settings()["model"].get("final") or best_by_cv
     best = results[(best_name, "full")]
     models_dir = config.path("models_dir")
     models_dir.mkdir(parents=True, exist_ok=True)
@@ -285,11 +287,12 @@ def stage_ablation(splits, spec, tracker) -> dict:
     oof.to_parquet(models_dir / "oof_best.parquet", index=False)
     info = {"model": best_name, "imbalance": "weight", "feature_set": "full", "params": tuned[best_name]["params"],
             "cv": {k: float(v) for k, v in best.summary().items() if k.endswith(("_mean", "_std"))},
-            "runner_up": full["model"].iloc[1] if len(full) > 1 else None,
+            "best_by_cv": best_by_cv,
+            "cv_by_model": dict(zip(full["model"], full["pr_auc_mean"].astype(float))),
             "oof_path": "data/models/oof_best.parquet"}
     (config.path("reports_dir") / "best_model.json").write_text(
         json.dumps(info, ensure_ascii=False, indent=2, default=float) + "\n", encoding="utf-8")
-    print(f"Mô hình tốt nhất: {best_name} (PR-AUC CV {info['cv']['pr_auc_mean']:.4f}); "
+    print(f"Mô hình được chọn: {best_name} (PR-AUC CV {info['cv']['pr_auc_mean']:.4f}; cao nhất theo CV: {best_by_cv}); "
           f"OOF lưu tại {info['oof_path']}")
     return info
 

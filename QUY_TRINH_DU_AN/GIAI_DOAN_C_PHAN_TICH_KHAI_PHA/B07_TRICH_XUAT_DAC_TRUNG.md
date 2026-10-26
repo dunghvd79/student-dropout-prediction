@@ -86,7 +86,7 @@ Kỳ 1 không có kỳ trước, nên Lag/Delta không xác định. Có ba lự
 * Quan hệ phi tuyến:
   * `Delta_GPA` có dạng **ngưỡng**: nhóm sụt mạnh nhất 19,5% so với ~9%.
   * `Delta_Stress` có dạng **chữ U**: ổn định 6,5%, tăng mạnh 15,9%, giảm mạnh 10,9%.
-* `CGPA`: 21,7% → 3,1% theo ngũ phân vị. `Financial_Burden_Index`: 4,8% → 20,2%.
+* `CGPA`: 21,7% → 3,1% theo ngũ phân vị. `Financial_Burden_Index`: 4,9% → 20,4%.
 * Nhóm GPA trùng thông tin (ρ 0,92 – 0,98); nhóm biến cố tài chính gần như không có tín hiệu. Giá trị **thêm vào** của đặc trưng chiều dọc sẽ được đo bằng ablation ở B11.
 
 ## 6. Công cụ / File thực hiện

@@ -69,44 +69,46 @@ Mô hình + tham số tốt nhất, dự đoán OOF (từ B11), `X_test, y_test`
 ## 5. Output
 * `reports/evaluation_report.md` (sinh tự động) + `reports/test_metrics.json` + 4 biểu đồ `reports/figures/eval_*.png`.
 * `config/risk_thresholds.json`: 2 mốc rủi ro chọn trên OOF Train (B14 đọc file này). Chính sách nằm trong `config/settings.yaml` → `risk_levels`.
-* MLflow Model Registry: **`dropout_model` v1, alias `production`** (MLflow 2.x khuyến nghị alias thay cho "stage"; B14 tải bằng `models:/dropout_model@production`). Kèm bản sao `data/models/dropout_model.joblib`.
+* MLflow Model Registry: **`dropout_model` v2, alias `production`** (v1 là bản trước khi sửa rò rỉ) (MLflow 2.x khuyến nghị alias thay cho "stage"; B14 tải bằng `models:/dropout_model@production`). Kèm bản sao `data/models/dropout_model.joblib`.
 
 **Quyết định trước khi nhìn Test (đều chọn trên Train):**
-1. **Hiệu chỉnh xác suất:** so sánh 5 phương án trên OOF (CV lồng nhau). LogReg **không trọng số lớp** đã hiệu chỉnh sẵn (Brier 0,0742, xác suất TB 0,101 = tỷ lệ thật) với PR-AUC cao nhất (0,4090). Trọng số lớp làm xác suất lệch (TB 0,388, Brier 0,176), và isotonic / sigmoid chỉ đưa về đúng mức đó. ⇒ Dùng LogReg không trọng số, **không thêm bước hiệu chỉnh**; mất cân bằng xử lý bằng ngưỡng.
-2. **Chính sách 3 mức** (nhóm chốt): Trung bình = ngưỡng lớn nhất đạt Recall ≥ 0,80 → **0,0704**; Cao = ngưỡng nhỏ nhất đạt Precision ≥ 0,50 → **0,3153**.
+1. **Hiệu chỉnh xác suất:** so sánh 5 phương án trên OOF (CV lồng nhau). LogReg **không trọng số lớp** đã hiệu chỉnh sẵn (Brier 0,0749, xác suất TB 0,101 = tỷ lệ thật) với PR-AUC cao nhất (0,3973). Trọng số lớp làm xác suất lệch (TB 0,391, Brier 0,177), và isotonic / sigmoid chỉ đưa về đúng mức đó. ⇒ Dùng LogReg không trọng số, **không thêm bước hiệu chỉnh**; mất cân bằng xử lý bằng ngưỡng.
+2. **Chính sách 3 mức** (nhóm chốt): Trung bình = ngưỡng lớn nhất đạt Recall ≥ 0,80 → **0,0717**; Cao = ngưỡng nhỏ nhất đạt Precision ≥ 0,50 → **0,3175**.
 
-**Kết quả trên Test** (13.650 dòng, 3.604 sinh viên, đánh giá **một lần**):
+**Kết quả trên Test** (13.650 dòng, 3.604 sinh viên):
+
+> Test đã được đánh giá **2 lần**. Lần 1 (PR-AUC 0,4002, Recall 0,827) bị thay thế vì B13 phát hiện rò rỉ `Income_Missing` từ B4. Cấu hình (LogReg, chính sách ngưỡng) chốt trên Train trước cả hai lần, nên lần 2 không phải "nhìn Test để chọn". Lý do ghi ở đầu `evaluation_report.md`, trong `test_metrics.json` (`history`) và tag MLflow `rerun_reason`.
 
 | Chỉ số | OOF Train | **Test** |
 |---|---:|---:|
-| PR-AUC | 0,4090 | **0,4002** |
-| ROC-AUC | 0,8028 | **0,8101** |
-| Brier | 0,0742 | **0,0772** |
-| Recall / Precision @ Trung bình | 0,800 / 0,195 | **0,827 / 0,208** |
-| Recall / Precision @ Cao | 0,323 / 0,500 | **0,284 / 0,493** |
+| PR-AUC | 0,3973 | **0,3914** |
+| ROC-AUC | 0,8004 | **0,8079** |
+| Brier | 0,0749 | **0,0777** |
+| Recall / Precision @ Trung bình | 0,800 / 0,193 | **0,820 / 0,205** |
+| Recall / Precision @ Cao | 0,309 / 0,500 | **0,273 / 0,497** |
 
 | Mức | % sinh viên (Test) | Tỷ lệ bỏ học thực tế | % ca bỏ học thuộc mức |
 |---|---:|---:|---:|
-| Cao | 6,0% | **49,3%** | 28,4% |
-| Trung bình | 35,5% | 15,9% | 54,2% |
-| Thấp | 58,5% | 3,1% | 17,3% |
+| Cao | 5,7% | **49,7%** | 27,3% |
+| Trung bình | 36,0% | 15,8% | 54,6% |
+| Thấp | 58,3% | 3,2% | 18,0% |
 
 * **Không overfit:** Test sát OOF; reliability diagram sát đường chéo trên cả hai.
 * **Công bằng (Recall tại mốc Trung bình):**
-  * Nữ 0,828 / Nam 0,821, không thiên lệch theo giới.
-  * Thấp hơn mục tiêu ở nhóm rủi ro nền thấp: có học bổng 0,762, không phải thế hệ đầu 0,781, kỳ 1 0,785, sống cùng bố mẹ 0,788.
-* **Ca bỏ sót** có hồ sơ như sinh viên bình thường (GPA 2,80, trượt 0,41 môn, áp lực 2,03): nguyên nhân bỏ học nằm ngoài dữ liệu.
-* **Đối chứng phụ** (không dùng để chọn): chỉ đặc trưng gốc 0,3960; XGBoost 0,3997. Kết luận B11 giữ nguyên.
+  * Nữ 0,820 / Nam 0,817, không thiên lệch theo giới.
+  * Thấp hơn mục tiêu ở nhóm rủi ro nền thấp: có học bổng 0,759, kỳ 1 0,766, sống cùng bố mẹ 0,776, không phải thế hệ đầu 0,780.
+* **Ca bỏ sót** có hồ sơ như sinh viên bình thường (GPA 2,80, trượt 0,39 môn, áp lực 2,09): nguyên nhân bỏ học nằm ngoài dữ liệu.
+* **Đối chứng phụ** (không dùng để chọn): chỉ đặc trưng gốc 0,3874; XGBoost 0,3950. Kết luận B11 giữ nguyên.
 
 ## 6. Công cụ / File thực hiện
-* `src/ml/evaluate.py`: chạy `python -m src.ml.evaluate [--force] [--no-register]`. **Chốt chặn:** nếu `reports/test_metrics.json` đã tồn tại thì từ chối đánh giá lại Test (trừ khi `--force`; số lần đánh giá được ghi trong `test_runs`). Gồm `oof_predictions`, `choose_thresholds`, `risk_level`, `fairness_table`, `missed_cases`, `register` (log mô hình kèm `code_paths=src`, gắn alias, tải lại kiểm tra).
+* `src/ml/evaluate.py`: chạy `python -m src.ml.evaluate [--force --reason "..."] [--no-register]`. **Chốt chặn:** nếu `reports/test_metrics.json` đã tồn tại thì từ chối đánh giá lại Test, trừ khi có `--force` **kèm** `--reason`; số lần đánh giá (`test_runs`), kết quả cũ và lý do (`history`) được giữ lại và in ở đầu báo cáo. Gồm `oof_predictions`, `choose_thresholds`, `risk_level`, `fairness_table`, `missed_cases`, `register` (log mô hình kèm `code_paths=src`, gắn alias, tải lại kiểm tra).
 * `tests/test_evaluate.py`: 6 unit test (ngưỡng đúng chính sách, ngưỡng "lớn nhất / nhỏ nhất", báo lỗi khi chính sách không thỏa hoặc mức Cao ≤ Trung bình, bảng mức rủi ro, công bằng); tổng 102/102 đạt.
 * Notebook `04_machine_learning_models.ipynb`, mục 7 (chỉ đọc kết quả đã lưu).
 
 ## 7. Tiêu chí hoàn thành (đã kiểm tra 2026-10-26)
-- [x] Đạt tiêu chí B0: PR-AUC Test 0,400 (gấp ~4 lần mốc ngẫu nhiên 0,10); **Recall 0,827 ≥ 0,80** ở mốc Trung bình; giải thích được (B13).
+- [x] Đạt tiêu chí B0: PR-AUC Test 0,391 (gấp ~3,8 lần mốc ngẫu nhiên 0,10); **Recall 0,820 ≥ 0,80** ở mốc Trung bình; giải thích được (B13).
 - [x] Tải lại mô hình từ Registry (`models:/dropout_model@production`) và dự đoán khớp với mô hình gốc.
-- [x] Tập Test chỉ đánh giá **một lần** (`test_runs = 1`).
+- [x] Tập Test không dùng để chọn: `test_runs = 2`, lần 2 do sửa rò rỉ (lý do ghi trong báo cáo và MLflow).
 
 ---
 

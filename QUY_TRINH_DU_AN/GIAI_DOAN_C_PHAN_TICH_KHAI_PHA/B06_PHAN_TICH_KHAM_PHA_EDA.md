@@ -82,7 +82,7 @@ Bảng ghép từ `load_analytic_table()` (79.239 dòng). Các tỷ lệ bỏ h�
 | 4 | Nhóm bỏ học sa sút trong 4 kỳ trước khi bỏ; nhóm tốt nghiệp có áp lực tài chính và giờ làm thêm đi ngang | `Delta_*`, `*_Roll3`, `GPA_Slope` |
 | 5 | GPA tụt ≥ 0,5: 32,5% bỏ học; nợ tích lũy ≥ 6 môn: 21,5% | Xác nhận `Delta_GPA`, `Cum_Failed_Courses` |
 | 6 | Thế hệ đầu 13,6% so với 8,4%; học bổng 7,3% so với 11,2%; hộ đông người rủi ro cao hơn (7,3% → 14,3%) | Giữ biến nhân khẩu học; kiểm tra công bằng ở B12 |
-| 7 | Không khai báo thu nhập: 84,7% bỏ học (chỉ 118 dòng) | Giữ cờ `Income_Missing`; theo dõi ở SHAP (B13) |
+| 7 | Chưa khai báo thu nhập (tính đến kỳ đó): 10,7% bỏ học, ≈ mức nền. *Bản đầu báo 84,7% (118 dòng) là do cờ nhìn trước tương lai, đã sửa ở B4 sau khi SHAP (B13) phát hiện* | Giữ cờ `Income_Missing` (đúng thời điểm) |
 | 8 | Gặp cố vấn nhiều hơn ở nhóm bỏ học (nhân quả ngược) | Không diễn giải là nguyên nhân |
 | 9 | Giới tính, tuổi gần như không khác biệt | Dùng cho kiểm tra công bằng |
 | 10 | Nhóm tài chính tương quan với nhau (|ρ| ≈ 0,5 – 0,57) | Lưu ý khi đọc hệ số LogReg và SHAP |

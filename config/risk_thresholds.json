@@ -1,6 +1,6 @@
 {
-  "medium": 0.07036384206088328,
-  "high": 0.3152689648946438,
+  "medium": 0.07170183262646884,
+  "high": 0.3175252650712643,
   "target_recall": 0.8,
   "high_precision": 0.5,
   "chosen_on": "OOF Train (5 fold theo sinh viên)",

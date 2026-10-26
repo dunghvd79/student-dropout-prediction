@@ -78,7 +78,7 @@ $$\text{Precision} = \frac{TP}{TP+FP} \qquad \text{Recall} = \frac{TP}{TP+FN} \q
 3. **Thời điểm dự đoán:** cuối kỳ *t*, chỉ dùng thông tin có sẵn đến hết kỳ *t*.
 4. **Người dùng kết quả:** Phòng Đào tạo, Phòng Công tác sinh viên, cố vấn học tập.
 5. **Chỉ số đánh giá:** PR-AUC (chính), Recall, Precision, F1, ROC-AUC.
-6. **Tiêu chí thành công** (đề xuất ở B0; **kết quả ở B12:** PR-AUC Test 0,400 so với mốc 0,10; Recall 0,827 tại mốc Trung bình, đổi lại theo dõi 41,5% sinh viên; mức Cao 6% sinh viên với Precision 0,49):
+6. **Tiêu chí thành công** (đề xuất ở B0; **kết quả ở B12:** PR-AUC Test 0,391 so với mốc 0,10; Recall 0,820 tại mốc Trung bình, đổi lại theo dõi 41,7% sinh viên; mức Cao 5,7% sinh viên với Precision 0,50; lý do cảnh báo theo nhóm SHAP ở B13):
    * PR-AUC vượt xa mức ngẫu nhiên (≈ 0,10).
    * Recall ≥ 0,80 ở ngưỡng cảnh báo.
    * Giải thích được lý do cảnh báo cho từng sinh viên (SHAP).

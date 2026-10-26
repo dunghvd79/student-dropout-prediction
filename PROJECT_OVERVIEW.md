@@ -30,8 +30,8 @@
   * Sự gia tăng áp lực tài chính và số giờ làm thêm.
 * **Kết quả kiểm chứng** (chi tiết ở [B11](QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_MAY/B11_HUAN_LUYEN_TINH_CHINH.md)):
   * EDA cho thấy nhóm sắp bỏ học **sa sút rõ** trong 4 kỳ trước khi bỏ (GPA 2,74 → 2,35; áp lực tài chính 2,94 → 3,87).
-  * Tuy nhiên, thí nghiệm ablation (3 seed × 5 fold) cho thấy thêm 23 đặc trưng chiều dọc **không cải thiện** dự báo: PR-AUC LogReg 0,4090 → 0,4098, khoảng tin cậy chứa 0.
-  * Riêng các đặc trưng chiều dọc vẫn đạt PR-AUC 0,354 (so với mốc 0,10), tức là **có thông tin nhưng trùng với trạng thái hiện tại**: sự sa sút đã thể hiện sẵn trong GPA, số môn nợ, áp lực tài chính của kỳ đang xét.
+  * Tuy nhiên, thí nghiệm ablation (3 seed × 5 fold) cho thấy thêm 23 đặc trưng chiều dọc **không cải thiện** dự báo: PR-AUC LogReg 0,3978 → 0,3982, chênh +0,0003, khoảng tin cậy chứa 0.
+  * Riêng các đặc trưng chiều dọc vẫn đạt PR-AUC 0,352 (so với mốc 0,10), tức là **có thông tin nhưng trùng với trạng thái hiện tại**: sự sa sút đã thể hiện sẵn trong GPA, số môn nợ, áp lực tài chính của kỳ đang xét.
   * ⇒ Giá trị của dữ liệu theo chiều dọc trong đề tài nằm ở **mô tả, khai phá và giải thích** (EDA, luật `GPA thấp + GPA tụt → 48% bỏ học`, lý do cảnh báo cho cố vấn). Đây là một **kết quả âm có đối chứng**, không phải giả định.
 
 ---

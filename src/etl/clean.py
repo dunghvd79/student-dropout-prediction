@@ -70,12 +70,16 @@ def clean(df: pd.DataFrame) -> tuple[pd.DataFrame, list[tuple[str, int]]]:
     log.append(("Attendance < 0 (mã lỗi -2) → thiếu, điền bằng kỳ trước", int(negative.sum() - df["Attendance"].isna().sum())))
     log.append(("Attendance vẫn thiếu (lỗi ở kỳ 1, điền ở B10)", int(df["Attendance"].isna().sum())))
 
-    # 7. Family_Income: thuộc tính tĩnh → lấy từ kỳ khác của cùng sinh viên (ffill + bfill)
+    # 7. Family_Income: giá trị không đổi theo sinh viên, nhưng việc ĐÃ BIẾT nó thì phụ thuộc thời gian
+    #    → chỉ ffill (lấy từ kỳ trước), KHÔNG bfill. Bản cũ ffill + bfill và đặt cờ "không khai báo ở kỳ nào":
+    #    cờ đó nhìn trước tương lai (sinh viên bỏ học sớm có ít kỳ để khai báo → 85% cờ = 1 là bỏ học),
+    #    phát hiện qua SHAP ở B13. Income_Missing giờ nghĩa là "chưa khai báo tính đến kỳ này".
     missing_before = df["Family_Income"].isna()
-    df["Family_Income"] = by_student["Family_Income"].transform(lambda s: s.ffill().bfill())
+    df["Family_Income"] = by_student["Family_Income"].ffill()
     df["Income_Missing"] = df["Family_Income"].isna().astype("int8")
-    log.append(("Điền Family_Income từ kỳ khác của cùng sinh viên", int(missing_before.sum() - df["Income_Missing"].sum())))
-    log.append(("Family_Income vẫn thiếu (cờ Income_Missing, điền ở B10)", int(df["Income_Missing"].sum())))
+    log.append(("Điền Family_Income bằng kỳ trước (ffill, không bfill)", int(missing_before.sum() - df["Income_Missing"].sum())))
+    log.append(("Family_Income vẫn thiếu (chưa khai báo đến kỳ đó, cờ Income_Missing, điền ở B10)",
+                int(df["Income_Missing"].sum())))
 
     # 8. LMS_Logins: biến động theo kỳ → chỉ lấy kỳ trước (ffill), KHÔNG bfill
     df["LMS_Missing"] = df["LMS_Logins"].isna().astype("int8")
@@ -99,7 +103,9 @@ def clean(df: pd.DataFrame) -> tuple[pd.DataFrame, list[tuple[str, int]]]:
 def post_checks(df: pd.DataFrame, n_expected: int) -> list[tuple[str, bool, str]]:
     """Kiểm tra sau làm sạch (mục 4.10 của B04). Trả về [(kiểm tra, đạt?, chi tiết)]."""
     static_varying = (df.groupby("Student_ID")[STATIC_COLUMNS].nunique() > 1).sum()
-    income_missing_students = df.loc[df["Income_Missing"] == 1, "Student_ID"].nunique()
+    never_declared = int(df.groupby("Student_ID")["Income_Missing"].min().sum())
+    # Đúng thời điểm: đã khai báo thì các kỳ sau không thể "chưa khai báo" lại → cờ không tăng theo kỳ
+    flag_rises = df.sort_values(["Student_ID", "Semester"]).groupby("Student_ID")["Income_Missing"].diff().gt(0).sum()
     return [
         ("Số dòng không đổi", len(df) == n_expected, f"{len(df):,} / {n_expected:,}"),
         ("Attendance trong [0, 100] (bỏ qua ô thiếu)", bool(df["Attendance"].dropna().between(0, 100).all()),
@@ -108,9 +114,8 @@ def post_checks(df: pd.DataFrame, n_expected: int) -> list[tuple[str, bool, str]
          ", ".join(sorted(df["Gender"].unique()))),
         ("Cột tĩnh không đổi trong cùng sinh viên", int(static_varying.sum()) == 0,
          f"{int(static_varying.sum())} vi phạm"),
-        ("Income_Missing là thuộc tính của cả sinh viên",
-         int(df.groupby("Student_ID")["Income_Missing"].nunique().max()) == 1,
-         f"{income_missing_students} sinh viên không khai báo thu nhập ở kỳ nào"),
+        ("Income_Missing chỉ dựa vào các kỳ đã qua (không tăng lại theo kỳ)", int(flag_rises) == 0,
+         f"{int(df['Income_Missing'].sum())} dòng chưa khai báo; {never_declared} sinh viên không khai báo ở kỳ nào"),
         ("Không còn trùng khóa", not df.duplicated(["Student_ID", "Semester"]).any(), ""),
         ("Đủ 24 cột", list(df.columns) == OUTPUT_COLUMNS, f"{df.shape[1]} cột"),
     ]

@@ -1,103 +1,114 @@
 {
-  "evaluated_at": "2026-10-26 21:41",
-  "test_runs": 1,
+  "evaluated_at": "2026-10-26 22:37",
+  "test_runs": 2,
+  "history": [
+    {
+      "evaluated_at": "2026-10-26 21:41",
+      "test_pr_auc": 0.40017777503071716,
+      "thresholds": {
+        "medium": 0.07036384206088328,
+        "high": 0.3152689648946438
+      },
+      "rerun_reason": "B13 (SHAP) phát hiện rò rỉ: cờ Income_Missing cũ = 'không khai báo thu nhập ở kỳ nào' (ffill + bfill) nhìn trước tương lai (84,7% bỏ học so với 10,7% khi tính đúng thời điểm). Đã sửa B4 (chỉ ffill), chạy lại B5 → B11; cấu hình mô hình (LogReg, chính sách ngưỡng) không đổi và được chốt trên Train trước khi đánh giá lại."
+    }
+  ],
   "config": {
     "model": "logreg",
     "params": {
-      "C": 1.2208338797645089
+      "C": 0.010768179105208237
     },
     "imbalance": "none"
   },
   "thresholds": {
-    "medium": 0.07036384206088328,
-    "high": 0.3152689648946438
+    "medium": 0.07170183262646884,
+    "high": 0.3175252650712643
   },
   "n_features": 43,
   "n_train": 54474,
   "n_test": 13650,
   "n_test_students": 3604,
   "oof": {
-    "pr_auc": 0.40896474914671643,
-    "roc_auc": 0.8027928238115402,
-    "brier": 0.07420751662648538,
-    "mean_proba": 0.10093171305238374,
+    "pr_auc": 0.3973338663378502,
+    "roc_auc": 0.8004481375954422,
+    "brier": 0.07489685443476012,
+    "mean_proba": 0.10091374778638475,
     "positive_rate": 0.10083709659654147,
     "at_medium": {
-      "threshold": 0.07036384206088328,
-      "precision": 0.19490022172949,
+      "threshold": 0.07170183262646884,
+      "precision": 0.19328876770164483,
       "recall": 0.8001092299290006,
-      "f1": 0.3134472060763827,
-      "alert_rate": 0.41395895289495904,
+      "f1": 0.3113598526442563,
+      "alert_rate": 0.41741014061754234,
       "tp": 4395,
-      "fp": 18155,
+      "fp": 18343,
       "fn": 1098,
-      "tn": 30826
+      "tn": 30638
     },
     "at_high": {
-      "threshold": 0.3152689648946438,
+      "threshold": 0.3175252650712643,
       "precision": 0.5,
-      "recall": 0.3227744401966139,
-      "f1": 0.3923000331895121,
-      "alert_rate": 0.0650952748100011,
-      "tp": 1773,
-      "fp": 1773,
-      "fn": 3720,
-      "tn": 47208
+      "recall": 0.3087565993082104,
+      "f1": 0.38176702307259425,
+      "alert_rate": 0.062268238058523336,
+      "tp": 1696,
+      "fp": 1696,
+      "fn": 3797,
+      "tn": 47285
     }
   },
   "test": {
-    "pr_auc": 0.40017777503071716,
-    "roc_auc": 0.8101126697202684,
-    "brier": 0.0772029553956522,
-    "mean_proba": 0.0983392998889545,
+    "pr_auc": 0.39137498691218087,
+    "roc_auc": 0.8078721531016052,
+    "brier": 0.07770709998136732,
+    "mean_proba": 0.098460702838112,
     "positive_rate": 0.10432234432234433,
     "at_medium": {
-      "threshold": 0.07036384206088328,
-      "precision": 0.20776699029126214,
-      "recall": 0.8265449438202247,
-      "f1": 0.332063760756101,
-      "alert_rate": 0.41501831501831504,
-      "tp": 1177,
-      "fp": 4488,
-      "fn": 247,
-      "tn": 7738
+      "threshold": 0.07170183262646884,
+      "precision": 0.20491659350307287,
+      "recall": 0.8195224719101124,
+      "f1": 0.3278550358196376,
+      "alert_rate": 0.41721611721611723,
+      "tp": 1167,
+      "fp": 4528,
+      "fn": 257,
+      "tn": 7698
     },
     "at_high": {
-      "threshold": 0.3152689648946438,
-      "precision": 0.4927007299270073,
-      "recall": 0.28441011235955055,
-      "f1": 0.3606411398040962,
-      "alert_rate": 0.06021978021978022,
-      "tp": 405,
-      "fp": 417,
-      "fn": 1019,
-      "tn": 11809
+      "threshold": 0.3175252650712643,
+      "precision": 0.49744245524296676,
+      "recall": 0.2731741573033708,
+      "f1": 0.3526745240253853,
+      "alert_rate": 0.05728937728937729,
+      "tp": 389,
+      "fp": 393,
+      "fn": 1035,
+      "tn": 11833
     }
   },
   "levels": [
     {
       "muc": "Thấp",
-      "so_dong": 7985,
-      "so_bo_hoc": 247,
-      "ty_le_bo_hoc_thuc": 0.030932999373825924,
-      "ty_le_dong": 0.584981684981685,
-      "ty_le_ca_bo_hoc_bat_duoc": 0.17345505617977527
+      "so_dong": 7955,
+      "so_bo_hoc": 257,
+      "ty_le_bo_hoc_thuc": 0.03230672532998114,
+      "ty_le_dong": 0.5827838827838828,
+      "ty_le_ca_bo_hoc_bat_duoc": 0.18047752808988765
     },
     {
       "muc": "Trung bình",
-      "so_dong": 4843,
-      "so_bo_hoc": 772,
-      "ty_le_bo_hoc_thuc": 0.15940532727648152,
-      "ty_le_dong": 0.3547985347985348,
-      "ty_le_ca_bo_hoc_bat_duoc": 0.5421348314606742
+      "so_dong": 4913,
+      "so_bo_hoc": 778,
+      "ty_le_bo_hoc_thuc": 0.15835538367596175,
+      "ty_le_dong": 0.3599267399267399,
+      "ty_le_ca_bo_hoc_bat_duoc": 0.5463483146067416
     },
     {
       "muc": "Cao",
-      "so_dong": 822,
-      "so_bo_hoc": 405,
-      "ty_le_bo_hoc_thuc": 0.4927007299270073,
-      "ty_le_dong": 0.06021978021978022,
-      "ty_le_ca_bo_hoc_bat_duoc": 0.28441011235955055
+      "so_dong": 782,
+      "so_bo_hoc": 389,
+      "ty_le_bo_hoc_thuc": 0.49744245524296676,
+      "ty_le_dong": 0.05728937728937729,
+      "ty_le_ca_bo_hoc_bat_duoc": 0.2731741573033708
     }
   ],
   "fairness": [
@@ -106,72 +117,72 @@
       "nhom": "Kỳ 1",
       "so_dong": 3604,
       "ty_le_bo_hoc": 0.07103218645948946,
-      "recall": 0.78515625,
-      "precision": 0.18890977443609022,
-      "pr_auc": 0.38219417734765354
+      "recall": 0.765625,
+      "precision": 0.17899543378995433,
+      "pr_auc": 0.34604201208113905
     },
     {
       "chieu": "Học kỳ",
       "nhom": "Kỳ 2",
       "so_dong": 2974,
       "ty_le_bo_hoc": 0.11566913248150638,
-      "recall": 0.8255813953488372,
-      "precision": 0.24482758620689654,
-      "pr_auc": 0.4336802867602249
+      "recall": 0.8313953488372093,
+      "precision": 0.24135021097046414,
+      "pr_auc": 0.4302408177951397
     },
     {
       "chieu": "Học kỳ",
       "nhom": "Kỳ ≥ 3",
       "so_dong": 7072,
       "ty_le_bo_hoc": 0.1165158371040724,
-      "recall": 0.8398058252427184,
-      "precision": 0.2011043301365882,
-      "pr_auc": 0.3935957684332127
+      "recall": 0.8313106796116505,
+      "precision": 0.2005856515373353,
+      "pr_auc": 0.39190150377656024
     },
     {
       "chieu": "Gender",
       "nhom": "Female",
       "so_dong": 6819,
       "ty_le_bo_hoc": 0.10602727672679278,
-      "recall": 0.8284923928077456,
-      "precision": 0.20892919427973491,
-      "pr_auc": 0.40149369279095365
+      "recall": 0.8201936376210235,
+      "precision": 0.20483592400690848,
+      "pr_auc": 0.39344090723770747
     },
     {
       "chieu": "Gender",
       "nhom": "Male",
       "so_dong": 6574,
       "ty_le_bo_hoc": 0.10130818375418314,
-      "recall": 0.8213213213213213,
-      "precision": 0.20486891385767791,
-      "pr_auc": 0.39614028255236583
+      "recall": 0.8168168168168168,
+      "precision": 0.20344053851907254,
+      "pr_auc": 0.38673263206076225
     },
     {
       "chieu": "Gender",
       "nhom": "Other/Unknown",
       "so_dong": 257,
       "ty_le_bo_hoc": 0.13618677042801555,
-      "recall": 0.8857142857142857,
-      "precision": 0.2421875,
-      "pr_auc": 0.49020521517112703
+      "recall": 0.8571428571428571,
+      "precision": 0.23809523809523808,
+      "pr_auc": 0.47439314285708617
     },
     {
       "chieu": "First_Generation",
       "nhom": "Không",
       "so_dong": 9020,
       "ty_le_bo_hoc": 0.08813747228381374,
-      "recall": 0.7811320754716982,
-      "precision": 0.20195121951219513,
-      "pr_auc": 0.3747979325689034
+      "recall": 0.779874213836478,
+      "precision": 0.1978933929141398,
+      "pr_auc": 0.37345333846909257
     },
     {
       "chieu": "First_Generation",
       "nhom": "Thế hệ đầu",
       "so_dong": 4630,
       "ty_le_bo_hoc": 0.13585313174946004,
-      "recall": 0.8839427662957074,
-      "precision": 0.21467181467181468,
-      "pr_auc": 0.4343856729322744
+      "recall": 0.8696343402225755,
+      "precision": 0.21350507416081185,
+      "pr_auc": 0.4154473643353431
     },
     {
       "chieu": "Housing_Status",
@@ -179,64 +190,64 @@
       "so_dong": 4010,
       "ty_le_bo_hoc": 0.10673316708229426,
       "recall": 0.8294392523364486,
-      "precision": 0.2062754212667054,
-      "pr_auc": 0.3802731703987696
+      "precision": 0.20461095100864554,
+      "pr_auc": 0.3810494581186663
     },
     {
       "chieu": "Housing_Status",
       "nhom": "On-Campus",
       "so_dong": 5283,
       "ty_le_bo_hoc": 0.10808252886617452,
-      "recall": 0.8528896672504378,
-      "precision": 0.21000431220353602,
-      "pr_auc": 0.4238652249658457
+      "recall": 0.8441330998248686,
+      "precision": 0.20731182795698924,
+      "pr_auc": 0.40681212172059616
     },
     {
       "chieu": "Housing_Status",
       "nhom": "With Parents",
       "so_dong": 4357,
       "ty_le_bo_hoc": 0.09754418177645169,
-      "recall": 0.788235294117647,
-      "precision": 0.20615384615384616,
-      "pr_auc": 0.39336108847495566
+      "recall": 0.7764705882352941,
+      "precision": 0.2018348623853211,
+      "pr_auc": 0.3871505014142795
     },
     {
       "chieu": "Scholarship",
       "nhom": "Có học bổng",
       "so_dong": 3941,
       "ty_le_bo_hoc": 0.07155544278102005,
-      "recall": 0.7624113475177305,
-      "precision": 0.18550474547023296,
-      "pr_auc": 0.333713463924916
+      "recall": 0.7588652482269503,
+      "precision": 0.17455138662316477,
+      "pr_auc": 0.3224325297607534
     },
     {
       "chieu": "Scholarship",
       "nhom": "Không học bổng",
       "so_dong": 9709,
       "ty_le_bo_hoc": 0.11762282418374703,
-      "recall": 0.8423817863397548,
-      "precision": 0.2134931202840657,
-      "pr_auc": 0.4185686208944771
+      "recall": 0.8345008756567426,
+      "precision": 0.21324681136719625,
+      "pr_auc": 0.4121508807260693
     }
   ],
   "missed": {
     "bo_sot_FN": {
       "Sem_GPA": 2.8,
-      "Failed_Courses": 0.41,
-      "Financial_Stress": 2.03,
-      "Work_Hours": 15.18,
-      "Attendance": 85.58,
-      "Semester": 3.01,
-      "Family_Income": 69611.34
+      "Failed_Courses": 0.39,
+      "Financial_Stress": 2.09,
+      "Work_Hours": 15.37,
+      "Attendance": 85.52,
+      "Semester": 3.02,
+      "Family_Income": 69192.16
     },
     "bat_duoc_TP": {
       "Sem_GPA": 2.27,
-      "Failed_Courses": 1.35,
-      "Financial_Stress": 4.19,
-      "Work_Hours": 22.95,
-      "Attendance": 82.69,
+      "Failed_Courses": 1.36,
+      "Financial_Stress": 4.2,
+      "Work_Hours": 22.98,
+      "Attendance": 82.68,
       "Semester": 3.37,
-      "Family_Income": 44662.93
+      "Family_Income": 44582.47
     },
     "o_lai": {
       "Sem_GPA": 2.74,
@@ -245,12 +256,12 @@
       "Work_Hours": 16.46,
       "Attendance": 85.51,
       "Semester": 3.03,
-      "Family_Income": 63013.91
+      "Family_Income": 63117.5
     }
   },
   "secondary": {
-    "LogReg – 43 đặc trưng (mô hình được chọn)": 0.40017777503071716,
-    "LogReg – chỉ 20 đặc trưng gốc (ablation)": 0.3959587760977826,
-    "XGBoost tinh chỉnh (dự phòng)": 0.3996525617093014
+    "LogReg – 43 đặc trưng (mô hình được chọn)": 0.39137498691218087,
+    "LogReg – chỉ 20 đặc trưng gốc (ablation)": 0.3874417268432281,
+    "XGBoost tinh chỉnh (dự phòng)": 0.39495057523471233
   }
 }

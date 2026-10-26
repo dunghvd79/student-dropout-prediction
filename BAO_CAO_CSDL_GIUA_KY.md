@@ -70,7 +70,7 @@ Nhóm phân rã dữ liệu thành **2 bảng quan hệ** chuẩn hóa để tr�
   * `first_generation` (BOOLEAN): Thế hệ đầu tiên học đại học (0 = Không, 1 = Có).
   * `household_size` (INT): Số người trong gia đình.
   * `housing_status` (VARCHAR(20)): Nơi cư trú (On-Campus / Off-Campus / With Parents).
-  * `family_income` (NUMERIC(12,2), cho phép NULL): Thu nhập gia đình hàng năm (USD). Giá trị này không đổi qua các kỳ nên đặt ở bảng tĩnh; NULL với 199 sinh viên không khai báo ở bất kỳ kỳ nào.
+  * `family_income` (NUMERIC(12,2), cho phép NULL): Thu nhập gia đình hàng năm (USD). Giá trị này không đổi qua các kỳ nên đặt ở bảng tĩnh; NULL với 199 sinh viên không khai báo ở bất kỳ kỳ nào. Cờ "chưa khai báo tính đến kỳ này" lưu theo kỳ trong MongoDB (`socio_economic.income_missing`) để mô hình chỉ dùng thông tin đã biết tại thời điểm dự đoán.
 
 * **Ví dụ 5 điểm dữ liệu thực tế (Lấy từ dataset):**
 
