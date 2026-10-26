@@ -11,6 +11,7 @@ paths:
   processed_dir: data/processed
   features_dir: data/features
   splits_dir: data/splits
+  models_dir: data/models
   reports_dir: reports
   figures_dir: reports/figures
 

@@ -51,7 +51,7 @@ Huấn luyện và **so sánh công bằng** các mô hình bằng Cross-Validat
 
 ### 2.4. Baseline và Ablation Study
 * **Baseline:** mốc tối thiểu để so sánh. `DummyClassifier` có PR-AUC ≈ tỷ lệ lớp dương (≈ 0,10); Logistic Regression là baseline "thật".
-* **Ablation study:** bỏ đi một thành phần để đo đóng góp của nó. Ở đây so sánh **chỉ đặc trưng gốc** với **đặc trưng gốc + đặc trưng chiều dọc**, để chứng minh giá trị của B7 bằng số liệu.
+* **Ablation study:** bỏ đi một thành phần để đo đóng góp của nó. Ở đây so sánh **chỉ đặc trưng gốc** với **đặc trưng gốc + đặc trưng chiều dọc**, để **đo** (không giả định) giá trị của B7 bằng số liệu.
 
 ### 2.5. Theo dõi thí nghiệm với MLflow
 | Khái niệm | Ý nghĩa |
@@ -85,23 +85,71 @@ Nhờ MLflow, mọi kết quả đều **truy vết được**: mô hình X đư
 ---
 
 ## 5. Output
-* `reports/model_comparison.csv` (mô hình × chỉ số, trung bình ± std).
-* Mô hình + bộ tham số tốt nhất; dự đoán OOF.
-* Các lần chạy trong MLflow experiment `dropout_ews`.
+* `reports/model_comparison.csv`, `reports/tuning_logreg.csv`, `reports/tuning_xgb.csv`, `reports/tuned_models.json`, `reports/ablation.csv`, `reports/best_model.json`.
+* `data/models/oof_best.parquet`: dự đoán out-of-fold của mô hình được chọn, dùng cho B12.
+* MLflow experiment `dropout_ews` (http://localhost:5000): mỗi cấu hình một run, gồm tham số, metric trung bình / std, metric từng fold, tag `data_md5` và `git_commit`.
+* Notebook [`notebooks/04_machine_learning_models.ipynb`](../../notebooks/04_machine_learning_models.ipynb) (phần B9 – B11) + 4 biểu đồ `reports/figures/ml_*.png`.
+
+**So sánh mô hình** (CV 5 fold theo sinh viên, tham số mặc định, trọng số lớp):
+
+| Mô hình | PR-AUC | ROC-AUC | Thời gian CV |
+|---|---:|---:|---:|
+| **LogReg** | **0,4095 ± 0,0064** | 0,803 | 8 giây |
+| XGBoost | 0,3913 ± 0,0077 | 0,789 | 19 giây |
+| LightGBM | 0,3912 ± 0,0108 | 0,787 | 13 giây |
+| Random Forest | 0,3751 ± 0,0068 | 0,789 | 38 giây |
+| Decision Tree | 0,3212 ± 0,0067 | 0,755 | 8 giây |
+| Dummy (mốc) | 0,1008 | 0,500 | – |
+
+* **Trọng số lớp và không xử lý** cho cùng PR-AUC: PR-AUC chỉ phụ thuộc thứ hạng; trọng số chỉ đổi Recall / Precision tại ngưỡng 0,5.
+* **SMOTE** (đã sửa thành SMOTENC) **giảm** PR-AUC ở cả 3 mô hình: LogReg 0,381, XGBoost 0,369, LightGBM 0,378; chậm hơn 7 – 13 lần. ⇒ Dùng trọng số lớp.
+
+**Tinh chỉnh** (Optuna TPE + MedianPruner, 40 thử nghiệm): LogReg 0,4095 → **0,4097** (`C = 1,22`); XGBoost 0,3913 → **0,4090** (`max_depth = 2`, `learning_rate = 0,023`, `n_estimators = 800`). Sau tinh chỉnh hai mô hình **ngang nhau**.
+
+**Ablation** (cùng tham số đã tinh chỉnh):
+
+| Mô hình | Chỉ gốc (20) | Gốc + chiều dọc (43) | Số fold đầy đủ tốt hơn |
+|---|---:|---:|---:|
+| LogReg | 0,4090 | 0,4097 | 2 / 5 |
+| XGBoost | 0,4104 | 0,4090 | 1 / 5 |
+
+* Kể cả sinh viên có lịch sử dài (kỳ ≥ 3): 0,4156 so với 0,4157 (LogReg). ⇒ **Đặc trưng chiều dọc không cải thiện dự báo.** Quỹ đạo sa sút thấy ở EDA đã thể hiện sẵn trong giá trị hiện tại.
+
+**Kiểm chứng độ vững của kết quả ablation** (chạy lại y hệt sẽ cho kết quả giống từng chữ số nên không kiểm chứng được gì; thay vào đó kiểm tra theo cách có thể làm kết luận thay đổi):
+
+| Kiểm tra | Kết quả | Kết luận |
+|---|---|---|
+| Lặp CV với 3 seed khác (15 cặp fold) | LogReg: +0,0008, khoảng tin cậy ~95% [−0,0008; +0,0024], tốt hơn 9/15 fold. XGBoost: −0,0019 [−0,0031; −0,0006], tốt hơn 4/15 fold | Không phụ thuộc cách chia fold. Với XGBoost, thêm đặc trưng trùng còn làm kém đi nhẹ |
+| Pipeline có dùng đặc trưng chiều dọc? | Gốc 24 cột, đầy đủ 47 cột sau xử lý; LogReg gán tổng \|hệ số\| 1,16 cho nhóm chiều dọc so với 7,75 cho nhóm gốc | Không có lỗi làm rơi cột; mô hình **chủ động** gán trọng số nhỏ |
+| Chỉ dùng 23 đặc trưng chiều dọc | PR-AUC 0,354 (mốc ngẫu nhiên 0,10) | Có thông tin nhưng **trùng** với đặc trưng gốc |
+
+> **Phạm vi kết luận:** đúng với bộ dữ liệu này, có thể là dữ liệu được sinh ra sao cho rủi ro phụ thuộc trạng thái hiện tại. Với dữ liệu thật của một trường, cần kiểm tra lại bằng đúng thí nghiệm này.
+
+**Mô hình được chọn:** **Logistic Regression**, trọng số lớp, `C = 1,22`, 43 đặc trưng; PR-AUC CV **0,4097 ± 0,0065**. Chọn vì ngang XGBoost nhưng đơn giản, nhanh, ổn định hơn và dễ giải thích. XGBoost tinh chỉnh là phương án dự phòng.
 
 ## 6. Công cụ / File thực hiện
-`src/ml/train.py`, notebook `04_machine_learning_models.ipynb` (`scikit-learn`, `xgboost`, `lightgbm`, `optuna`, `mlflow`).
+* `src/ml/experiments.py`: chạy `python -m src.ml.experiments [--stage all|compare|tune|ablation] [--trials 40] [--no-mlflow]`. Tách khỏi `train.py`: `train.py` dựng Pipeline, `experiments.py` chạy thí nghiệm. Gồm `cross_validate` (mỗi fold dựng Pipeline mới, `scale_pos_weight` tính lại trên fold), `Tracker` (MLflow; lỗi ghi log không dừng thí nghiệm), `stage_compare`, `tune`, `stage_ablation`.
+* `src/ml/train.py`: bổ sung `DiscreteAwareSMOTE` (SMOTENC cho cột rời rạc); sửa `build_model` để `params` ghi đè tham số mặc định.
+* `tests/test_experiments.py` (6 test), `tests/test_train_pipeline.py` (+6 test: SMOTE giữ cột rời rạc, ghi đè tham số cho 5 mô hình); tổng 96/96 đạt.
+* Thời gian chạy: compare ~10 phút; tune LogReg ~37 phút (một số giá trị `C` hội tụ chậm), XGBoost ~10 phút; ablation ~1 phút.
 
-## 7. Tiêu chí hoàn thành
-- [ ] Mô hình tốt nhất vượt baseline LogReg rõ rệt về PR-AUC.
-- [ ] Độ lệch chuẩn PR-AUC giữa các fold nhỏ (mô hình ổn định).
-- [ ] Có kết quả ablation cho đặc trưng chiều dọc.
+## 7. Tiêu chí hoàn thành (đã kiểm tra 2026-10-26)
+- [x] Mô hình tốt nhất vượt baseline rõ rệt: PR-AUC 0,41 so với 0,10 (Dummy). LogReg vừa là baseline "thật" vừa là mô hình tốt nhất. Đây là một phát hiện, không phải thiếu sót: mô hình cây sau tinh chỉnh chỉ đuổi kịp.
+- [x] Độ lệch chuẩn PR-AUC giữa các fold nhỏ (0,006 – 0,009), nên mô hình ổn định.
+- [x] Có kết quả ablation cho đặc trưng chiều dọc (kết quả âm, kiểm chứng theo cặp fold và theo độ dài lịch sử).
+
+**Lỗi phát hiện và sửa trong bước này:**
+1. SMOTE nội suy cột nhị phân / đếm, nên mô hình cây tách được dòng tổng hợp và SMOTE mất tác dụng mà không báo lỗi → `DiscreteAwareSMOTE` (SMOTENC). Kết quả compare cũ đã xóa khỏi MLflow.
+2. `build_model` đặt cứng `C`, `max_depth`… nên Optuna truyền trùng tham số bị lỗi → mặc định + ghi đè; thêm test.
 
 ---
 
 ## 8. Câu hỏi bảo vệ thường gặp
-**Hỏi:** Vì sao chọn XGBoost / LightGBM?  
-**Đáp:** Gradient boosting thường mạnh nhất trên dữ liệu bảng, bắt được phi tuyến và tương tác, tự xử lý giá trị thiếu, và có `scale_pos_weight` cho dữ liệu mất cân bằng. Nhóm vẫn so sánh với các mô hình khác bằng CV, nên lựa chọn có căn cứ số liệu.
+**Hỏi:** Vì sao chọn Logistic Regression mà không phải XGBoost?
+**Đáp:** Nhóm không chọn trước mà so sánh 6 mô hình bằng CV 5 fold theo sinh viên. Với tham số mặc định, LogReg dẫn đầu (0,4095 so với 0,3913). Sau khi tinh chỉnh cả hai bằng Optuna, XGBoost đuổi kịp (0,4090 so với 0,4097), chênh lệch nhỏ hơn nhiều độ lệch chuẩn giữa các fold. Khi ngang nhau, chọn mô hình **đơn giản, ổn định, nhanh và dễ giải thích** hơn. Optuna chọn cho XGBoost cây rất nông (`max_depth = 2`), cũng cho thấy quan hệ trong dữ liệu gần tuyến tính.
+
+**Hỏi:** Đặc trưng theo chiều dọc có giúp không?
+**Đáp:** Không làm tăng độ chính xác: thêm 23 đặc trưng chiều dọc vào 20 đặc trưng gốc cho chênh lệch +0,0008, khoảng tin cậy chứa 0 (3 seed × 5 fold). Riêng chúng vẫn đạt PR-AUC 0,354, tức là có thông tin nhưng trùng với trạng thái hiện tại. Nhóm giữ chúng vì giá trị mô tả và giải thích.
 
 **Hỏi:** Tinh chỉnh siêu tham số có làm overfit không?  
 **Đáp:** Có thể overfit vào tập kiểm định nếu thử quá nhiều. Nhóm tinh chỉnh bằng CV 5-fold theo nhóm trên Train, và chỉ đánh giá **một lần** trên Test chưa từng dùng.

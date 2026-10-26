@@ -1,0 +1,22 @@
+{
+  "model": "logreg",
+  "imbalance": "weight",
+  "feature_set": "full",
+  "params": {
+    "C": 1.2208338797645089
+  },
+  "cv": {
+    "pr_auc_mean": 0.4096615362075414,
+    "pr_auc_std": 0.006478130931110341,
+    "roc_auc_mean": 0.8028642641553105,
+    "roc_auc_std": 0.007320353808853374,
+    "precision_mean": 0.2386482489828093,
+    "precision_std": 0.006605216904240517,
+    "recall_mean": 0.7020754194952434,
+    "recall_std": 0.005942541956984671,
+    "f1_mean": 0.3561610748292641,
+    "f1_std": 0.007154351846883459
+  },
+  "runner_up": "xgb",
+  "oof_path": "data/models/oof_best.parquet"
+}

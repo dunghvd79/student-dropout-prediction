@@ -22,3 +22,6 @@ Thumbs.db
 data/
 mlruns/
 mlartifacts/
+
+# Log tạm khi chạy thí nghiệm
+reports/_*.log

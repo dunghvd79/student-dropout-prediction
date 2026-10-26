@@ -9,7 +9,7 @@ Bước duy nhất ngoài "học" là CastTypes: ép kiểu cố định, không
 
 import numpy as np
 import pandas as pd
-from imblearn.over_sampling import SMOTE
+from imblearn.over_sampling import SMOTE, SMOTENC
 from imblearn.pipeline import Pipeline as ImbPipeline
 from lightgbm import LGBMClassifier
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -84,6 +84,30 @@ class Winsorizer(BaseEstimator, TransformerMixin):
         return np.asarray(input_features, dtype=object)
 
 
+class DiscreteAwareSMOTE(BaseEstimator):
+    """SMOTE không tạo giá trị "không thể có" ở cột rời rạc.
+
+    SMOTE thường nội suy MỌI cột → cột nhị phân / One-Hot / cột đếm nhận giá trị lẻ (Scholarship = 0,43,
+    Semester = 2,37). Mô hình cây tách được ngay dòng tổng hợp bằng một ngưỡng như vậy, nên học trên dữ
+    liệu "cân bằng" nhưng dự đoán trên dữ liệu thật vẫn như chưa cân bằng. Lớp này phát hiện lúc fit các
+    cột mà mọi giá trị đều là số nguyên và giao cho SMOTENC (lấy giá trị phổ biến của láng giềng thay vì
+    nội suy); cột liên tục vẫn nội suy như SMOTE.
+    """
+
+    def __init__(self, random_state=None):
+        self.random_state = random_state
+
+    def fit_resample(self, X, y):
+        X = np.asarray(X, dtype=float)
+        discrete = [j for j in range(X.shape[1]) if np.all(np.mod(X[:, j], 1) == 0)]
+        self.discrete_columns_ = discrete
+        if not discrete or len(discrete) == X.shape[1]:
+            sampler = SMOTE(random_state=self.random_state)
+        else:
+            sampler = SMOTENC(categorical_features=discrete, random_state=self.random_state)
+        return sampler.fit_resample(X, y)
+
+
 # ---------------------------------------------------------------- tiền xử lý
 
 def column_groups(spec: dict) -> dict[str, list[str]]:
@@ -151,14 +175,16 @@ def build_model(name: str, weighted: bool, pos_weight: float | None, params: dic
     cw = "balanced" if weighted else None
     if name == "dummy":
         return DummyClassifier(strategy="prior")
+    # Tham số mặc định; `params` (từ Optuna ở B11) ghi đè lên
     if name == "logreg":
-        return LogisticRegression(max_iter=3000, C=1.0, class_weight=cw, random_state=rs, **params)
+        return LogisticRegression(**{"C": 1.0, "max_iter": 3000, **params}, class_weight=cw, random_state=rs)
     if name == "dtree":
-        return DecisionTreeClassifier(max_depth=8, min_samples_leaf=50, class_weight=cw, random_state=rs, **params)
+        return DecisionTreeClassifier(**{"max_depth": 8, "min_samples_leaf": 50, **params},
+                                      class_weight=cw, random_state=rs)
     if name == "rf":
-        return RandomForestClassifier(n_estimators=300, min_samples_leaf=20, max_features="sqrt",
+        return RandomForestClassifier(**{"n_estimators": 300, "min_samples_leaf": 20, "max_features": "sqrt", **params},
                                       class_weight="balanced_subsample" if weighted else None,
-                                      n_jobs=-1, random_state=rs, **params)
+                                      n_jobs=-1, random_state=rs)
     spw = pos_weight if weighted else 1.0
     if name == "xgb":
         defaults = dict(n_estimators=400, learning_rate=0.05, max_depth=5, subsample=0.8, colsample_bytree=0.8,
@@ -195,5 +221,5 @@ def build_pipeline(name: str, spec: dict, imbalance: str = "weight", y_train=Non
              ("prep", build_preprocessor(spec, kind))]
     model = build_model(name, weighted=(imbalance == "weight"), pos_weight=pos_weight, params=params)
     if imbalance == "smote":
-        return ImbPipeline(steps + [("smote", SMOTE(random_state=_random_state())), ("model", model)])
+        return ImbPipeline(steps + [("smote", DiscreteAwareSMOTE(random_state=_random_state())), ("model", model)])
     return Pipeline(steps + [("model", model)])

@@ -175,7 +175,7 @@ Tich_Hop_pTich_DlieuLon/
 │   ├── core/          config.py, db.py, schema.py    # dùng chung
 │   ├── etl/           ingest.py (B2), validate.py (B3), clean.py (B4), load.py (B5)
 │   ├── analysis/      features.py (B7), mining.py (B8)
-│   ├── ml/            split.py (B9), train.py (B10 – B12), explain.py (B13), predict.py (B14)
+│   ├── ml/            split.py (B9), train.py (B10), experiments.py (B11), explain.py (B13), predict.py (B14)
 │   └── ops/           check_env.py (B1), monitor.py, run_pipeline.py (B16)
 ├── tests/                                 # pytest
 │

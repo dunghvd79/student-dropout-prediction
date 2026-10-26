@@ -124,3 +124,31 @@ def test_invalid_arguments():
         build_pipeline("svm", SPEC)
     with pytest.raises(ValueError):
         build_pipeline("xgb", SPEC, imbalance="weight", y_train=None)
+
+
+def test_smote_keeps_discrete_columns_discrete(data):
+    """Mẫu tổng hợp không được có giá trị lẻ ở cột nhị phân / One-Hot (nếu có, mô hình cây tách được ngay)."""
+    (X, y), _ = data
+    pipe = build_pipeline("rf", SPEC, imbalance="smote", y_train=y).fit(X, y)
+    prepped = pipe[:2].transform(X)
+    X_res, y_res = pipe.named_steps["smote"].fit_resample(prepped, y)
+    synthetic = X_res[len(X):]
+    discrete = pipe.named_steps["smote"].discrete_columns_
+    assert len(discrete) >= 2 + 6  # 2 cột nhị phân + 6 cột One-Hot
+    assert np.all(np.mod(synthetic[:, discrete], 1) == 0)
+    assert y_res.mean() == pytest.approx(0.5)
+
+
+@pytest.mark.parametrize("name, params", [
+    ("logreg", {"C": 0.05}),
+    ("dtree", {"max_depth": 3}),
+    ("rf", {"n_estimators": 50, "min_samples_leaf": 7, "max_features": 0.5}),
+    ("xgb", {"n_estimators": 50, "max_depth": 3}),
+    ("lgbm", {"n_estimators": 50, "num_leaves": 9}),
+])
+def test_params_override_defaults(data, name, params):
+    """Tham số tinh chỉnh (Optuna) phải ghi đè mặc định, không báo lỗi trùng tham số."""
+    (X, y), _ = data
+    pipe = build_pipeline(name, SPEC, imbalance="weight", y_train=y, params=params).fit(X, y)
+    got = pipe.named_steps["model"].get_params()
+    assert all(got[k] == v for k, v in params.items())
