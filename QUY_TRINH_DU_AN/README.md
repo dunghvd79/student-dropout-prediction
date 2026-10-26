@@ -169,6 +169,7 @@ Tich_Hop_pTich_DlieuLon/
 │   └── feature_spec.json                  # B7
 ├── sql/01_ingestion_log.sql               # B2
 ├── sql/02_core_tables.sql                 # B5
+├── sql/03_student_clusters.sql            # B8
 │
 ├── src/
 │   ├── core/          config.py, db.py, schema.py    # dùng chung

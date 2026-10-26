@@ -1,5 +1,5 @@
 # TIẾN ĐỘ DỰ ÁN
-**Cập nhật lần cuối:** 2026-10-26 · **Commit mới nhất:** "Buoc 7: trich xuat dac trung" (xem `git log`)  
+**Cập nhật lần cuối:** 2026-10-26 · **Commit mới nhất:** "Buoc 8: khai pha du lieu" (xem `git log`)  
 **Quy trình chi tiết:** [`QUY_TRINH_DU_AN/`](./QUY_TRINH_DU_AN/README.md)
 
 > Cập nhật file này mỗi khi xong một bước: đổi trạng thái, ghi commit, thêm quyết định / vấn đề mới.
@@ -18,8 +18,8 @@
 | | B5 Nạp kho Polyglot | ✅ Xong |
 | **C – Phân tích & Khai phá** | B6 EDA | ✅ Xong |
 | | B7 Trích xuất đặc trưng | ✅ Xong |
-| | B8 Khai phá dữ liệu | ⏭️ **Làm tiếp theo** |
-| **D – Học máy** | B9 Chia tập | ⬜ Chưa làm |
+| | B8 Khai phá dữ liệu | ✅ Xong |
+| **D – Học máy** | B9 Chia tập | ⏭️ **Làm tiếp theo** |
 | | B10 Tiền xử lý & mất cân bằng | ⬜ Chưa làm |
 | | B11 Huấn luyện & tinh chỉnh | ⬜ Chưa làm |
 | | B12 Đánh giá & chọn ngưỡng | ⬜ Chưa làm |
@@ -29,7 +29,7 @@
 | | B16 Giám sát & vận hành | ⬜ Chưa làm |
 | **F – Kết thúc** | B17 Báo cáo & bảo vệ | ⬜ Chưa làm |
 
-**Hoàn thành: 8 / 18 bước** (Giai đoạn A và B xong; Giai đoạn C: 2/3).
+**Hoàn thành: 9 / 18 bước** (Giai đoạn A, B, C xong).
 
 ---
 
@@ -89,15 +89,22 @@
 * 6 unit test mới (gồm test "không nhìn tương lai"); tổng 45/45 đạt. Chạy 2 lần cho file giống hệt.
 * **Sửa B4:** `Attendance = −2` là mã lỗi (85 dòng, kỳ trước / sau quanh 86%) chứ không phải 0% chuyên cần → coi là thiếu, điền bằng kỳ trước; trước đó clip về 0 tạo `Delta_Attendance` giả tới −96. Đã nạp lại kho, chạy lại EDA (số liệu chuyên cần đổi 0,1 – 0,2 điểm, đã cập nhật nhận xét).
 
+### B8 – Khai phá dữ liệu ✅ (commit "Buoc 8: khai pha du lieu")
+* `python -m src.analysis.mining` → PostgreSQL `student_clusters` (20.000), `reports/cluster_profiles.csv`, `reports/association_rules.csv`; notebook `03_data_mining_patterns.ipynb` (5 biểu đồ).
+* **K-Means k = 4:** tỷ lệ bỏ học theo sinh viên 67% (sa sút học tập + áp lực tài chính) / 32% (đi làm nhiều) / 31% (học lực yếu, tài chính ổn) / 17% (học tốt). Silhouette ≈ 0,13 và DBSCAN chỉ ra 1 cụm, nên cụm được hiểu là phân khúc; điểm nhiễu DBSCAN có 65% bỏ học.
+* **Apriori:** 15 luật lift ≥ 2; mạnh nhất `GPA_Low + Failed_2plus` → 55,8% (lift 5,5). FP-Growth cùng kết quả nhưng chậm hơn (18 giây so với 0,07 giây, vì chỉ 11 item).
+* 5 unit test mới; tổng 50/50 đạt.
+
 ---
 
-## 3. Việc tiếp theo: B8 – Khai phá dữ liệu
+## 3. Việc tiếp theo: B9 – Tạo tập có nhãn & chia Train/Test
 
-Chi tiết: [`B08_KHAI_PHA_DU_LIEU.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_C_PHAN_TICH_KHAI_PHA/B08_KHAI_PHA_DU_LIEU.md)
+Chi tiết: [`B09_CHIA_TAP_DU_LIEU.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_MAY/B09_CHIA_TAP_DU_LIEU.md)
 
-- [ ] **8A – Phân cụm:** tổng hợp lên mức sinh viên (20.000), chuẩn hóa, K-Means k = 2 … 10 (Elbow + Silhouette), so sánh DBSCAN, mô tả + đặt tên cụm theo tỷ lệ bỏ học, PCA 2D; ghi bảng `student_clusters` vào PostgreSQL.
-- [ ] **8B – Luật kết hợp:** rời rạc hóa thành item, Apriori / FP-Growth (`min_support = 0,01`), lọc vế phải `{DROPOUT}`, `confidence ≥ 0,3`, `lift ≥ 2`; `reports/association_rules.csv` + diễn giải.
-- [ ] Notebook `03_data_mining_patterns.ipynb`.
+- [ ] `src/ml/train.py` (hàm `make_splits`): tách Scoring set (`Censored = 1`, 11.115 dòng); tập có nhãn 68.124 dòng; loại cột rò rỉ.
+- [ ] Chia 80/20 theo `Student_ID` bằng `StratifiedGroupKFold` (`random_state = 42`); kiểm tra giao `Student_ID` = ∅ và tỷ lệ lớp dương ~10,2% ở cả hai tập.
+- [ ] Lưu `data/splits/test_student_ids.csv`; chuẩn bị `StratifiedGroupKFold(5)` cho CV ở B11.
+- [ ] Unit test cho tính không giao nhau và tính tái lập.
 
 ---
 
@@ -115,6 +122,7 @@ Chi tiết: [`B08_KHAI_PHA_DU_LIEU.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_C_PHAN_TICH_
 * MinIO `raw`: 1 object (lô `20261011T085849Z_7df267`). MinIO `processed`: `academic/batch_id=20261011T085849Z_7df267/clean_semesters.parquet`.
 * PostgreSQL `dropout_ews`: `ingestion_log` 3 dòng (1 `SUCCESS`, 1 `SKIPPED` khi chạy lại, 1 `FAILED` từ file hỏng dùng để thử); `students` 20.000; `financial_profiles` 20.000; `predictions` rỗng.
 * MongoDB `dropout_ews.academic_semesters`: 79.239 document, unique index `(student_id, semester)`.
+* PostgreSQL `student_clusters`: 20.000 dòng (B8).
 * Trên máy: `data/processed/clean_semesters.parquet` (không commit, tạo lại bằng `python -m src.etl.clean`).
 * MLflow: experiment `_smoke_test` đã xóa (chỉ dùng để thử ghi artifact).
 
@@ -143,7 +151,7 @@ Chi tiết: [`B08_KHAI_PHA_DU_LIEU.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_C_PHAN_TICH_
 docker compose up -d          # bật lại MinIO, PostgreSQL, MongoDB, MLflow
 .venv\Scripts\activate
 python -m src.ops.check_env       # phải báo "Tất cả đều sẵn sàng"
-python -m pytest              # 45/45 đạt
+python -m pytest              # 50/50 đạt
 ```
 
 * Muốn giải phóng RAM khi không làm: `docker compose stop` (dữ liệu vẫn giữ trong volume).

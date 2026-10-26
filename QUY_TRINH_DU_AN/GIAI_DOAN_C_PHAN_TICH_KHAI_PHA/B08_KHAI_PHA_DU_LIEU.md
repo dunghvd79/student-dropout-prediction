@@ -102,15 +102,38 @@ Lớp bỏ học chỉ ~10%, nên mọi luật có vế phải `{DROPOUT}` có s
 ---
 
 ## 6. Output
-* Bảng `student_clusters (student_id, cluster_id, cluster_name)` trong PostgreSQL; bảng hồ sơ cụm; biểu đồ Elbow, Silhouette, PCA.
-* `reports/association_rules.csv` + bảng diễn giải và đề xuất chính sách (học bổng, giảm giờ làm thêm, cố vấn).
+* PostgreSQL `student_clusters (student_id, cluster_id, cluster_name)`: 20.000 dòng, tạo bởi `sql/03_student_clusters.sql`, tính lại toàn bộ mỗi lần chạy. Dùng cho dashboard B15.
+* `reports/cluster_profiles.csv`, `reports/association_rules.csv`.
+* Notebook [`notebooks/03_data_mining_patterns.ipynb`](../../notebooks/03_data_mining_patterns.ipynb) + 5 biểu đồ `reports/figures/mining_*.png`.
+
+**Kết quả 8A – Phân cụm** (8 biến trung bình theo kỳ ở mức sinh viên; "bỏ học" tính **theo sinh viên**, nền 34,6%):
+
+| Cụm | Số SV | Bỏ học | Đặc điểm | Gợi ý can thiệp |
+|---|---:|---:|---|---|
+| Nguy cơ cao: sa sút học tập + áp lực tài chính | 3.881 | 67% | GPA 2,30; trượt 1,06 môn/kỳ; làm thêm 26,4 giờ; áp lực 5,55; thu nhập ~28.100 | Hỗ trợ tài chính **và** học thuật |
+| Đi làm nhiều, áp lực tài chính vừa | 5.566 | 32% | Làm thêm 25,7 giờ; GPA 2,75; chuyên cần thấp nhất | Học bổng / việc làm trong trường |
+| Học lực yếu, tài chính ổn định | 5.360 | 31% | Thu nhập ~74.400; GPA 2,60; trượt 0,82 môn/kỳ | Phụ đạo, cố vấn môn học |
+| Học tốt – ổn định | 5.193 | 17% | GPA 3,07; chuyên cần, LMS cao | Theo dõi định kỳ |
+
+* **Chọn k = 4:** Elbow không có khuỷu rõ. Silhouette cao nhất ở k = 2 (0,205) và ≈ 0,13 cho k = 4 – 6. Chọn k = 4 để diễn giải được, và các cụm khác biệt rõ về rủi ro.
+* **DBSCAN** (`min_samples = 16`, eps 1,0 – 1,8) chỉ tìm thấy **1 cụm dày đặc** + nhiễu ⇒ dữ liệu là một khối liên tục, nên 4 cụm K-Means được hiểu là **phân khúc**. Điểm nhiễu có tỷ lệ bỏ học cao vượt trội (eps = 1,5: 5,3% sinh viên, **65%** bỏ học so với 33%), nên DBSCAN hữu ích để **phát hiện sinh viên bất thường**.
+* PCA 2D giữ 49,5% phương sai: PC1 ≈ trục áp lực tài chính, PC2 ≈ trục học thuật.
+
+**Kết quả 8B – Luật kết hợp** (68.124 dòng có nhãn, 11 item, tỷ lệ nền 10,2%): **15 luật** với support ≥ 0,01, confidence ≥ 0,3, lift ≥ 2.
+* Mạnh nhất: `GPA_Low + Failed_2plus → DROPOUT`, confidence **55,8%**, lift **5,5**; `GPA_Low + GPA_Drop` 48,0% (lift 4,7); `GPA_Low` riêng lẻ 40,2%.
+* Tài chính + học tập: `Failed_2plus + No_Scholarship + Work_High` 43,2%; `First_Gen + Stress_High` 34,2%.
+* `Attendance_Low`, `Has_Emergency` không xuất hiện trong luật nào.
+* Apriori và FP-Growth cho cùng 129 itemset phổ biến. Apriori nhanh hơn nhiều (0,07 giây so với 18 giây) vì chỉ có 11 item và Apriori của `mlxtend` được vector hóa. Lợi thế của FP-Growth chỉ rõ khi có rất nhiều item.
 
 ## 7. Công cụ / File thực hiện
-Notebook `03_data_mining_patterns.ipynb` (`scikit-learn`, `mlxtend`).
+* `src/analysis/mining.py`: chạy `python -m src.analysis.mining` (khoảng 10 giây). Gồm `student_profile`, `scan_k`, `fit_clusters`, `describe_clusters`, `name_clusters` (đặt tên theo tỷ lệ bỏ học và giờ làm thêm, không phụ thuộc số thứ tự cụm), `make_items`, `mine_rules`.
+* `tests/test_mining.py`: 5 unit test.
+* `notebooks/03_data_mining_patterns.ipynb`: chọn k, hồ sơ cụm, PCA, DBSCAN, Apriori so với FP-Growth, luật và đề xuất chính sách.
 
-## 8. Tiêu chí hoàn thành
-- [ ] Các cụm có tỷ lệ bỏ học khác biệt rõ và đặt tên được.
-- [ ] Có ít nhất 5 luật với lift ≥ 2 được diễn giải.
+## 8. Tiêu chí hoàn thành (đã kiểm tra 2026-10-26)
+- [x] Các cụm có tỷ lệ bỏ học khác biệt rõ (67% / 32% / 31% / 17%) và đặt tên được.
+- [x] Có 15 luật với lift ≥ 2 (≥ 5 theo yêu cầu), đã diễn giải và đề xuất can thiệp.
+- [x] Cụm không được dùng làm đặc trưng cho mô hình (K-Means fit trên toàn bộ sinh viên).
 
 ---
 
