@@ -50,9 +50,11 @@ split:
 
 model:
   primary_metric: average_precision   # PR-AUC
-  target_recall: 0.80
 
 risk_levels:
-  # Mốc xác suất (đã hiệu chỉnh): Thấp < medium, Trung bình [medium, high), Cao >= high
-  medium: 0.3
-  high: 0.6
+  # CHÍNH SÁCH (nhóm chốt ở B12). Mốc xác suất cụ thể được B12 tính trên dự đoán out-of-fold của Train
+  # và ghi vào config/risk_thresholds.json (B14 đọc file đó), không đặt cứng ở đây.
+  #   Trung bình: ngưỡng LỚN NHẤT vẫn đạt Recall >= target_recall  → bắt đủ 80% ca bỏ học (theo dõi / email)
+  #   Cao       : ngưỡng NHỎ NHẤT đạt Precision >= high_precision  → ít nhất 1/2 cảnh báo là đúng (liên hệ trực tiếp)
+  target_recall: 0.80
+  high_precision: 0.50

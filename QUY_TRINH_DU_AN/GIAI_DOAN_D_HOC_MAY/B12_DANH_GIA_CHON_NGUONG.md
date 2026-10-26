@@ -67,16 +67,46 @@ Mô hình + tham số tốt nhất, dự đoán OOF (từ B11), `X_test, y_test`
 ---
 
 ## 5. Output
-* `reports/evaluation_report.md` + biểu đồ (PR, ROC, confusion matrix, calibration).
-* `dropout_model` phiên bản N ở trạng thái **Production**.
-* Ngưỡng và mốc rủi ro trong `config/settings.yaml`.
+* `reports/evaluation_report.md` (sinh tự động) + `reports/test_metrics.json` + 4 biểu đồ `reports/figures/eval_*.png`.
+* `config/risk_thresholds.json`: 2 mốc rủi ro chọn trên OOF Train (B14 đọc file này). Chính sách nằm trong `config/settings.yaml` → `risk_levels`.
+* MLflow Model Registry: **`dropout_model` v1, alias `production`** (MLflow 2.x khuyến nghị alias thay cho "stage"; B14 tải bằng `models:/dropout_model@production`). Kèm bản sao `data/models/dropout_model.joblib`.
+
+**Quyết định trước khi nhìn Test (đều chọn trên Train):**
+1. **Hiệu chỉnh xác suất:** so sánh 5 phương án trên OOF (CV lồng nhau). LogReg **không trọng số lớp** đã hiệu chỉnh sẵn (Brier 0,0742, xác suất TB 0,101 = tỷ lệ thật) với PR-AUC cao nhất (0,4090). Trọng số lớp làm xác suất lệch (TB 0,388, Brier 0,176), và isotonic / sigmoid chỉ đưa về đúng mức đó. ⇒ Dùng LogReg không trọng số, **không thêm bước hiệu chỉnh**; mất cân bằng xử lý bằng ngưỡng.
+2. **Chính sách 3 mức** (nhóm chốt): Trung bình = ngưỡng lớn nhất đạt Recall ≥ 0,80 → **0,0704**; Cao = ngưỡng nhỏ nhất đạt Precision ≥ 0,50 → **0,3153**.
+
+**Kết quả trên Test** (13.650 dòng, 3.604 sinh viên, đánh giá **một lần**):
+
+| Chỉ số | OOF Train | **Test** |
+|---|---:|---:|
+| PR-AUC | 0,4090 | **0,4002** |
+| ROC-AUC | 0,8028 | **0,8101** |
+| Brier | 0,0742 | **0,0772** |
+| Recall / Precision @ Trung bình | 0,800 / 0,195 | **0,827 / 0,208** |
+| Recall / Precision @ Cao | 0,323 / 0,500 | **0,284 / 0,493** |
+
+| Mức | % sinh viên (Test) | Tỷ lệ bỏ học thực tế | % ca bỏ học thuộc mức |
+|---|---:|---:|---:|
+| Cao | 6,0% | **49,3%** | 28,4% |
+| Trung bình | 35,5% | 15,9% | 54,2% |
+| Thấp | 58,5% | 3,1% | 17,3% |
+
+* **Không overfit:** Test sát OOF; reliability diagram sát đường chéo trên cả hai.
+* **Công bằng (Recall tại mốc Trung bình):**
+  * Nữ 0,828 / Nam 0,821, không thiên lệch theo giới.
+  * Thấp hơn mục tiêu ở nhóm rủi ro nền thấp: có học bổng 0,762, không phải thế hệ đầu 0,781, kỳ 1 0,785, sống cùng bố mẹ 0,788.
+* **Ca bỏ sót** có hồ sơ như sinh viên bình thường (GPA 2,80, trượt 0,41 môn, áp lực 2,03): nguyên nhân bỏ học nằm ngoài dữ liệu.
+* **Đối chứng phụ** (không dùng để chọn): chỉ đặc trưng gốc 0,3960; XGBoost 0,3997. Kết luận B11 giữ nguyên.
 
 ## 6. Công cụ / File thực hiện
-`src/ml/train.py` (hàm `evaluate`, `register`), notebook `04_machine_learning_models.ipynb` (`scikit-learn`, `mlflow`).
+* `src/ml/evaluate.py`: chạy `python -m src.ml.evaluate [--force] [--no-register]`. **Chốt chặn:** nếu `reports/test_metrics.json` đã tồn tại thì từ chối đánh giá lại Test (trừ khi `--force`; số lần đánh giá được ghi trong `test_runs`). Gồm `oof_predictions`, `choose_thresholds`, `risk_level`, `fairness_table`, `missed_cases`, `register` (log mô hình kèm `code_paths=src`, gắn alias, tải lại kiểm tra).
+* `tests/test_evaluate.py`: 6 unit test (ngưỡng đúng chính sách, ngưỡng "lớn nhất / nhỏ nhất", báo lỗi khi chính sách không thỏa hoặc mức Cao ≤ Trung bình, bảng mức rủi ro, công bằng); tổng 102/102 đạt.
+* Notebook `04_machine_learning_models.ipynb`, mục 7 (chỉ đọc kết quả đã lưu).
 
-## 7. Tiêu chí hoàn thành
-- [ ] Đạt tiêu chí thành công ở B0 trên Test (hoặc có giải thích rõ nếu chưa đạt).
-- [ ] Tải lại mô hình từ Registry (`models:/dropout_model/Production`) và dự đoán được.
+## 7. Tiêu chí hoàn thành (đã kiểm tra 2026-10-26)
+- [x] Đạt tiêu chí B0: PR-AUC Test 0,400 (gấp ~4 lần mốc ngẫu nhiên 0,10); **Recall 0,827 ≥ 0,80** ở mốc Trung bình; giải thích được (B13).
+- [x] Tải lại mô hình từ Registry (`models:/dropout_model@production`) và dự đoán khớp với mô hình gốc.
+- [x] Tập Test chỉ đánh giá **một lần** (`test_runs = 1`).
 
 ---
 

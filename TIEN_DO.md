@@ -1,5 +1,5 @@
 # TIẾN ĐỘ DỰ ÁN
-**Cập nhật lần cuối:** 2026-10-26 · **Commit mới nhất:** xem `git log`  
+**Cập nhật lần cuối:** 2026-10-26 · **Commit mới nhất:** `Buoc 12: danh gia tren Test, chon nguong, dang ky mo hinh`  
 **Quy trình chi tiết:** [`QUY_TRINH_DU_AN/`](./QUY_TRINH_DU_AN/README.md)
 
 > Cập nhật file này mỗi khi xong một bước: đổi trạng thái, ghi commit, thêm quyết định / vấn đề mới.
@@ -22,14 +22,14 @@
 | **D – Học máy** | B9 Chia tập | ✅ Xong |
 | | B10 Tiền xử lý & mất cân bằng | ✅ Xong |
 | | B11 Huấn luyện & tinh chỉnh | ✅ Xong |
-| | B12 Đánh giá & chọn ngưỡng | ⏭️ **Làm tiếp theo** |
-| | B13 Giải thích SHAP | ⬜ Chưa làm |
+| | B12 Đánh giá & chọn ngưỡng | ✅ Xong |
+| | B13 Giải thích SHAP | ⏭️ **Làm tiếp theo** |
 | **E – Triển khai & Vận hành** | B14 Dự đoán theo lô | ⬜ Chưa làm |
 | | B15 Dashboard | ⬜ Chưa làm |
 | | B16 Giám sát & vận hành | ⬜ Chưa làm |
 | **F – Kết thúc** | B17 Báo cáo & bảo vệ | ⬜ Chưa làm |
 
-**Hoàn thành: 12 / 18 bước** (Giai đoạn A, B, C xong; Giai đoạn D: 3/5).
+**Hoàn thành: 13 / 18 bước** (Giai đoạn A, B, C xong; Giai đoạn D: 4/5).
 
 ---
 
@@ -126,17 +126,23 @@
 * **Kiểm chứng độ vững:** lặp CV 3 seed × 5 fold: LogReg +0,0008 (khoảng tin cậy chứa 0), XGBoost −0,0019; pipeline đủ 47 cột; chỉ đặc trưng chiều dọc đạt 0,354 ⇒ có thông tin nhưng trùng với trạng thái hiện tại.
 * Sửa lỗi: tham số Optuna trùng tham số đặt cứng trong `build_model`. 12 test mới; tổng 96/96 đạt. Notebook `04_machine_learning_models.ipynb` (phần B9 – B11).
 
+### B12 – Đánh giá trên Test & đăng ký mô hình ✅ (commit `Buoc 12`)
+* Chọn trên Train: LogReg **không trọng số lớp** (đã hiệu chỉnh sẵn, Brier OOF 0,0742, không cần isotonic); mốc rủi ro trên OOF: Trung bình ≥ 0,0704 (Recall ≥ 0,80), Cao ≥ 0,3153 (Precision ≥ 0,50) → `config/risk_thresholds.json`.
+* **Test (một lần):** PR-AUC 0,400, ROC-AUC 0,810, Brier 0,077 (sát OOF, không overfit). Recall 0,827 / Precision 0,208 tại mốc Trung bình; mức Cao: 6,0% sinh viên, 49,3% thật sự bỏ học.
+* Công bằng: Nữ / Nam như nhau; Recall thấp hơn ở nhóm rủi ro nền thấp (có học bổng 0,76, kỳ 1 0,79). Ca bỏ sót có hồ sơ "bình thường", nguyên nhân nằm ngoài dữ liệu.
+* MLflow Registry: `dropout_model` v1, alias `production` (tải lại khớp). `src/ml/evaluate.py` có chốt chặn chống đánh giá Test nhiều lần. 6 test mới; tổng 102/102 đạt.
+
 ---
 
-## 3. Việc tiếp theo: B12 – Đánh giá trên Test, chọn ngưỡng & đăng ký mô hình
+## 3. Việc tiếp theo: B13 – Giải thích mô hình (SHAP)
 
-Chi tiết: [`B12_DANH_GIA_CHON_NGUONG.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_MAY/B12_DANH_GIA_CHON_NGUONG.md)
+Chi tiết: [`B13_GIAI_THICH_MO_HINH_SHAP.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_MAY/B13_GIAI_THICH_MO_HINH_SHAP.md)
 
-- [ ] Hiệu chỉnh xác suất (isotonic, CV theo nhóm trên Train); reliability curve + Brier score trước / sau.
-- [ ] Chọn ngưỡng trên **OOF** (`oof_best.parquet`) để Recall ≥ 0,80 (OOF cho thấy Precision chỉ ~0,19 tại đó); cập nhật mốc rủi ro trong `settings.yaml` nếu cần.
-- [ ] Huấn luyện lại trên toàn Train; đánh giá **Test một lần duy nhất** (PR-AUC, ROC-AUC, Recall, Precision, F1, ma trận nhầm lẫn).
-- [ ] Phân tích lỗi & công bằng (theo học kỳ, `Gender`, `First_Generation`, `Housing_Status`).
-- [ ] Đăng ký `dropout_model` vào MLflow Model Registry ở trạng thái Production.
+- [ ] Mô hình là LogReg nên dùng **`shap.LinearExplainer`** (chính xác, nhanh) thay cho `TreeExplainer`; cập nhật B13 tương ứng.
+- [ ] Giải thích toàn cục (bar, beeswarm), dependence cho 3 – 5 đặc trưng; **cộng SHAP theo nhóm** (nhóm GPA, nhóm môn trượt, nhóm tài chính) vì các đặc trưng trùng thông tin.
+- [ ] Giải thích cục bộ (waterfall) cho vài sinh viên mức Cao / bị bỏ sót.
+- [ ] `src/ml/explain.py`: hàm `top_reasons(row, k=3)` dịch sang tiếng Việt, dùng cho B14 / Streamlit.
+- [ ] Kiểm tra mức phụ thuộc vào `Income_Missing` (EDA: 84,7% bỏ học, chỉ 118 dòng).
 
 ---
 
@@ -177,6 +183,8 @@ Chi tiết: [`B12_DANH_GIA_CHON_NGUONG.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_MA
 | 11 | Không dùng SMOTE; dùng trọng số lớp | SMOTE (kể cả SMOTENC) giảm PR-AUC ở cả 3 mô hình vì phá ràng buộc giữa các đặc trưng | B10, B11 |
 | 12 | Mô hình cuối là **Logistic Regression** (không phải XGBoost như thiết kế ban đầu) | Ngang XGBoost tinh chỉnh (0,4097 so với 0,4090) nhưng đơn giản, ổn định, dễ giải thích | B11, THIET_KE_PIPELINE, README |
 | 13 | Trình bày dữ liệu chiều dọc là giá trị **mô tả / giải thích**, không phải độ chính xác | Ablation 3 seed × 5 fold: không cải thiện PR-AUC | README, PROJECT_OVERVIEW, B06, B07, B11 |
+| 14 | LogReg cuối **không dùng trọng số lớp**, không thêm bước hiệu chỉnh | Đã hiệu chỉnh sẵn (Brier bằng isotonic), PR-AUC cao nhất; mất cân bằng xử lý bằng ngưỡng | B12 |
+| 15 | 3 mức rủi ro theo chính sách: Cao = Precision ≥ 0,5 (0,315), Trung bình = Recall ≥ 0,80 (0,070) thay cho mốc cố định 0,3 / 0,6 | Mốc cố định 0,3 / 0,6 chỉ bắt ~34% ca bỏ học | B12, settings.yaml, THIET_KE_PIPELINE |
 
 ---
 
@@ -186,7 +194,7 @@ Chi tiết: [`B12_DANH_GIA_CHON_NGUONG.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_D_HOC_MA
 docker compose up -d          # bật lại MinIO, PostgreSQL, MongoDB, MLflow
 .venv\Scripts\activate
 python -m src.ops.check_env       # phải báo "Tất cả đều sẵn sàng"
-python -m pytest              # 96/96 đạt
+python -m pytest              # 102/102 đạt
 ```
 
 * Muốn giải phóng RAM khi không làm: `docker compose stop` (dữ liệu vẫn giữ trong volume).
@@ -198,5 +206,5 @@ python -m pytest              # 96/96 đạt
 
 - [x] **Cách trình bày "điểm độc đáo":** đã sửa README, PROJECT_OVERVIEW, B06, B07, B11, B17, THIET_KE_PIPELINE theo hướng "quỹ đạo giúp mô tả / giải thích, đã kiểm chứng là không tăng độ chính xác"; bổ sung kiểm chứng độ vững. Nhóm nên đọc lại trước khi bảo vệ.
 - [ ] Các thành viên khác chưa thử dựng lại môi trường trên máy của mình (tiêu chí cuối của B1).
-- [ ] Tiêu chí thành công ở B0 (Recall ≥ 0,80, PR-AUC) là đề xuất, cần chốt sau khi có baseline ở B11.
+- [x] Tiêu chí thành công ở B0: đạt ở B12 (Recall Test 0,827 tại mốc Trung bình; PR-AUC 0,400 so với mốc 0,10).
 - [ ] Dòng `FAILED` thử nghiệm trong `ingestion_log`: giữ làm bằng chứng hay xóa trước khi demo.

@@ -117,7 +117,7 @@ Kế thừa kiến trúc **Polyglot Persistence (PostgreSQL + MongoDB)** đã th
 ---
 
 ### 10. Machine Learning & Quản lý phiên bản (Model Management)
-* **Mục đích của Model:** Dự đoán xác suất sinh viên bỏ học ở kỳ tiếp theo (`Target_Dropout_Next_Sem = 1`, chiếm ~**8,7%** toàn bộ dữ liệu và **10,2%** tập có nhãn sau khi loại các dòng `Censored = 1`, mất cân bằng lớp) và gán Risk Score: **Thấp** (< 0,3), **Trung bình** (0,3 – 0,6), **Cao** (≥ 0,6).
+* **Mục đích của Model:** Dự đoán xác suất sinh viên bỏ học ở kỳ tiếp theo (`Target_Dropout_Next_Sem = 1`, chiếm ~**8,7%** toàn bộ dữ liệu và **10,2%** tập có nhãn sau khi loại các dòng `Censored = 1`, mất cân bằng lớp) và gán Risk Score 3 mức theo chính sách chốt ở B12: **Cao** (≥ 0,315, Precision ≥ 0,5: liên hệ trực tiếp, ~6% sinh viên), **Trung bình** (0,070 – 0,315, cùng mức Cao đạt Recall ≥ 0,80: theo dõi / email), **Thấp** (còn lại). Mốc được chọn trên dự đoán out-of-fold, lưu trong `config/risk_thresholds.json`.
 * **Mô hình:** **Logistic Regression** (trọng số lớp), chọn sau khi so sánh 6 mô hình bằng CV 5 fold theo sinh viên. Sau tinh chỉnh, XGBoost ngang bằng (PR-AUC 0,4090 so với 0,4097) nên chọn mô hình đơn giản, dễ giải thích hơn (xem B11).
 * **Nơi chạy:** Batch Inference Script bằng Python (Scikit-Learn) chạy định kỳ trên máy local/container. Đối tượng được chấm điểm là kỳ mới nhất của các sinh viên đang theo học (11.115 dòng `Censored = 1`). Kết quả ghi vào bảng `predictions` trong PostgreSQL.
 * **Công cụ quản lý phiên bản:** **MLflow** (chạy trong container Docker, backend store là PostgreSQL, artifact store là MinIO) để:
