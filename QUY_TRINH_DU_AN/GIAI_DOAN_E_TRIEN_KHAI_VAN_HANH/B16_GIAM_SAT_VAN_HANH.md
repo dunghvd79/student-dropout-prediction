@@ -64,8 +64,17 @@ Toàn bộ script `src/*.py`, bảng `predictions`, MLflow, dữ liệu kỳ m�
 ---
 
 ## 4. Biến đổi
-1. **Điều phối:** `src/ops/run_pipeline.py` gọi tuần tự `ingest → validate → clean → load → features → predict → monitor`; dừng và ghi lỗi nếu một bước thất bại.
-2. **Lập lịch:** Windows Task Scheduler / cron chạy **hàng tuần** và **sau mỗi đợt thi**. Khi mở rộng có thể chuyển sang Airflow DAG.
+1. **Điều phối:** `src/ops/run_pipeline.py` gọi tuần tự `ingest → validate → clean → load → features → predict → publish → monitor`.
+   * Mỗi bước chạy đúng lệnh `python -m …` như khi chạy tay, trong một tiến trình riêng.
+   * Một bước lỗi thì dừng; `--from STEP` cho phép chạy lại từ bước đó.
+   * Không chạy chồng hai lần.
+   * Kết quả ghi vào bảng `pipeline_runs`, log chi tiết ở `logs/pipeline/`.
+2. **Lập lịch:** Windows Task Scheduler chạy `scripts/chay_dinh_ky.ps1` **hàng tuần** (đăng ký bằng `scripts/dang_ky_lich.ps1`), và chạy tay sau mỗi đợt thi. Script làm 3 việc:
+   * Kiểm tra Docker, bật container.
+   * Chạy pipeline.
+   * Sao lưu.
+   
+   Khi mở rộng có thể chuyển sang Airflow DAG.
 3. **Giám sát 5 metrics** (ghi vào bảng `pipeline_runs`):
 
    | Metric | Ngưỡng cảnh báo |
@@ -76,23 +85,69 @@ Toàn bộ script `src/*.py`, bảng `predictions`, MLflow, dữ liệu kỳ m�
    | Recall / PR-AUC trên dữ liệu kỳ mới đã có nhãn | Giảm > 5 điểm % so với lúc triển khai |
    | Data drift: PSI của `Sem_GPA`, `Financial_Stress`, `Attendance` | PSI > 0,2 |
 
-4. **Huấn luyện lại:** cuối mỗi học kỳ hoặc khi vượt ngưỡng → chạy lại B9 – B12; chỉ thăng hạng lên Production nếu PR-AUC **không thấp hơn** champion.
+4. **Huấn luyện lại (quy trình, chưa tự động hóa):** cuối mỗi học kỳ, hoặc khi PSI > 0,2, hoặc khi hiệu năng trên nhãn mới giảm quá ngưỡng:
+   * Chạy lại B9 → B11 trên dữ liệu đã có thêm nhãn.
+   * Đánh giá **cả champion** (`dropout_model@production`) **lẫn challenger** trên cùng tập Test mới.
+   * Chỉ chuyển alias `production` sang challenger nếu PR-AUC **không thấp hơn** champion và Recall tại mốc Trung bình vẫn ≥ 0,80.
+   * Phiên bản cũ vẫn nằm trong Registry để quay lại khi cần.
 5. **Sao lưu 3-2-1** hàng tuần và sau mỗi đợt nạp cuối kỳ: `pg_dump`, `mongodump`, đồng bộ bucket MinIO, artifact MLflow. Lưu trên máy chính + ổ cứng rời + một bản ngoài site (Google Drive / S3 Glacier). Giữ 4 bản tuần gần nhất + 1 bản cuối mỗi học kỳ.
 6. **Diễn tập khôi phục** ít nhất 1 lần: dựng container mới, khôi phục từ bản sao lưu, chạy lại B14 và so sánh kết quả.
 
 ---
 
 ## 5. Output
-* Bảng `pipeline_runs`; cảnh báo khi vượt ngưỡng (log / email).
-* Các bản sao lưu; phiên bản mô hình mới (nếu có).
+* Bảng `pipeline_runs` (`sql/04_pipeline_runs.sql`): mỗi lần chạy một dòng. Gồm:
+  * `trigger` (manual / scheduled), `status`, `failed_step`, `seconds`.
+  * `steps`: trạng thái và thời gian từng bước.
+  * `metrics`: kết quả giám sát.
+  * `alerts`: các ngưỡng bị vượt.
+* `reports/monitoring_report.md` sinh lại sau mỗi lần chạy. Cảnh báo hiện ở đầu báo cáo, trong `pipeline_runs.alerts` và ở log của Task Scheduler (chưa gửi email).
+* Bản sao lưu `backups/<thời điểm>/` (không commit), mỗi bản gồm:
+  * 2 dump PostgreSQL.
+  * 1 archive MongoDB.
+  * Toàn bộ object MinIO.
+  * `manifest.json` (SHA-256 và số lượng lúc sao lưu).
+  * Giữ 4 bản gần nhất.
+
+**Kết quả** (2026-10-27, dữ liệu hiện tại):
+
+| Chỉ số | Giá trị | Ngưỡng |
+|---|---:|---|
+| Thời gian pipeline (7 bước + monitor) | 60 – 64 giây | < 120 giây |
+| Tỷ lệ lỗi schema của lô thô | 0,00% | ≤ 0,1% |
+| Thiếu `Family_Income` / `LMS_Logins` | 4,5% / 1,1% | ≤ 10% |
+| PSI `Sem_GPA` / `Financial_Stress` / `Attendance` | 0,014 / 0,010 / 0,011 (ổn định) | ≤ 0,2 |
+| PSI lớn nhất trong 35 biến số | `Semester` 0,098 | sinh viên đang học tập trung ở các kỳ đầu hơn Train; vẫn < 0,1 |
+| Mức Cao: lần chấm mới nhất / Test | 3,9% / 5,7% | lệch ≤ 50% |
+| Hiệu năng trên nhãn mới | chưa có (0 dòng có kết cục) | cần dữ liệu học kỳ sau |
+
+* Sao lưu: 69 file, 11,8 MB, 3 – 4 giây.
+* Diễn tập khôi phục: dữ liệu được nạp vào `postgres:16.6` và `mongo:7.0.16` **tạm**, không mở cổng và tự xóa khi xong. Đạt **14/14** kiểm tra:
+  * SHA-256 của 69 file.
+  * 7 bảng PostgreSQL.
+  * MLflow Model Registry (2 phiên bản `dropout_model`).
+  * 79.239 document MongoDB.
+  * 3 bucket MinIO.
+  * RTO đo được **12 giây** (mục tiêu < 1 giờ).
 
 ## 6. Công cụ / File thực hiện
-`src/ops/run_pipeline.py`, `src/ops/monitor.py`, `backup.ps1` / `backup.sh`, Windows Task Scheduler / cron (Airflow khi mở rộng).
+* `src/ops/run_pipeline.py`: `python -m src.ops.run_pipeline [--trigger scheduled] [--from STEP] [--file CSV]`. Dùng `--file` để nạp dữ liệu kỳ mới.
+* `src/ops/monitor.py`: `collect()` và `write_report()`; chạy riêng bằng `python -m src.ops.monitor`.
+  * Hàm thuần: `psi`, `schema_error_rate`, `performance_on_new_labels`.
+  * Ngưỡng nằm trong `settings.yaml` → `monitoring`.
+* `src/ops/backup.py`: `python -m src.ops.backup` để sao lưu, `python -m src.ops.backup verify [DIR]` để diễn tập khôi phục. Cấu hình ở `settings.yaml` → `backup`.
+* `scripts/chay_dinh_ky.ps1` (lần chạy định kỳ, log UTF-8 ở `logs/`) và `scripts/dang_ky_lich.ps1` (đăng ký / gỡ tác vụ `DropoutEWS-HangTuan`: thứ Hai 07:00, chạy bù nếu máy tắt, không cần quyền Admin).
+* `tests/test_monitor.py` (6 test) và `tests/test_backup.py` (2 test); tổng 130/130 đạt.
+* **Lưu ý vận hành:**
+  * Tác vụ chỉ chạy khi người dùng đã đăng nhập và Docker Desktop đang bật. Docker tắt thì script báo lỗi mã 3.
+  * Bước `ingest` ghi một dòng `SKIPPED` vào `ingestion_log` mỗi lần chạy với cùng file. Đây là log, không phải lỗi.
+  * Bản sao lưu thứ 3 (ngoài site, quy tắc 3-2-1) là chép thủ công thư mục `backups/<thời điểm>` ra ổ rời / Drive.
 
-## 7. Tiêu chí hoàn thành
-- [ ] Pipeline chạy tự động thành công ít nhất 1 lần theo lịch.
-- [ ] Tính được PSI và ghi vào `pipeline_runs`.
-- [ ] Khôi phục thử từ bản sao lưu thành công.
+## 7. Tiêu chí hoàn thành (đã kiểm tra 2026-10-27)
+- [x] Pipeline chạy tự động thành công ít nhất 1 lần theo lịch: đăng ký `DropoutEWS-HangTuan` và kích hoạt bằng Task Scheduler → `LastTaskResult = 0`, `run_20261027T091452` (`trigger = scheduled`), pipeline 61 giây + sao lưu 3 giây. Sau đó **đã gỡ tác vụ** theo quyết định của nhóm; đăng ký lại bằng `scripts\dang_ky_lich.ps1`.
+- [x] Tính được PSI và ghi vào `pipeline_runs` (`metrics.psi`, `metrics.psi_all_numeric`).
+- [x] Khôi phục thử từ bản sao lưu thành công (14/14 kiểm tra, RTO 12 giây).
+- [x] Một bước lỗi thì pipeline dừng, ghi `FAILED` và tên bước, trả mã ≠ 0. Đã thử bằng một bước giả không tồn tại; dòng thử đã xóa.
 
 ---
 

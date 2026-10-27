@@ -66,16 +66,51 @@ PostgreSQL (`students`, `financial_profiles`, `predictions`, `student_clusters`)
 ---
 
 ## 5. Output
-* `dashboards/ews_dashboard.pbix`.
-* `app/streamlit_app.py` chạy tại `http://localhost:8501`.
-* Ảnh chụp màn hình cho báo cáo.
+* **PostgreSQL cho Power BI** (`python -m src.etl.publish`):
+  * Bảng `semester_summary`: mỗi học kỳ một dòng, gồm số SV, tỷ lệ bỏ học, GPA, chuyên cần, áp lực tài chính, làm thêm, số môn trượt. Bảng này tổng hợp dữ liệu theo kỳ ở MongoDB mà Power BI không đọc được.
+  * View `v_canh_bao`: lần chấm điểm mới nhất ghép với hồ sơ và cụm.
+  * View `v_rui_ro_theo_nhom`: tỷ lệ mức Cao / Trung bình theo 5 chiều.
+* **Power BI:** [`dashboards/HUONG_DAN_POWER_BI.md`](../../dashboards/HUONG_DAN_POWER_BI.md) gồm kết nối, measure DAX, quy ước màu, cách dựng 4 trang và bảng số liệu để đối chiếu. File `dashboards/ews_dashboard.pbix` do nhóm dựng bằng Power BI Desktop, vì máy làm dự án chưa cài.
+* **Streamlit** `app/streamlit_app.py` (http://localhost:8501), 4 trang đi từ tổng quan tới chi tiết:
+
+  | Trang | Trả lời câu hỏi | Nội dung |
+  |---|---|---|
+  | Cần liên hệ (mặc định) | Tuần này liên hệ ai? | Thanh tỷ trọng 3 mức; 7 bộ lọc (mức, kỳ, lý do chính, cụm, học bổng, thế hệ đầu, nơi ở); bảng xếp theo nguy cơ kèm 3 lý do; chọn dòng → mở hồ sơ; tải CSV |
+  | Hồ sơ sinh viên | Vì sao, và nên làm gì? | Câu kết luận ("Nguy cơ bỏ học kỳ tới 92%, mức cao", so với mức chung 10,2%); 3 dòng **Vì sao → Nên làm**; waterfall SHAP theo nhóm (trục ghi bằng xác suất); hồ sơ tĩnh; quỹ đạo 4 chỉ số qua các kỳ so với trung bình cùng kỳ |
+  | Toàn trường | Nhóm nào rủi ro nhất? | Tỷ lệ mức Cao / Trung bình theo 5 chiều (cùng view với Power BI); xu hướng theo học kỳ |
+  | Nhóm và quy luật | Đặc điểm nào hay đi cùng bỏ học? | 4 cụm (B8A) và 15 luật kết hợp (B8B) viết thành câu tiếng Việt |
+* Ảnh chụp cho báo cáo: `reports/figures/app_*.png`, gồm 4 trang và bản hồ sơ trên điện thoại.
+
+**Thiết kế** (theo mục 2.2):
+* **Màu cảnh báo chỉ dành cho mức rủi ro:** Cao `#B83227`, Trung bình `#C7821A`. Mức Thấp và mọi thứ khác dùng màu mực `#1E2B2F` hoặc chì `#66767B` trên nền "giấy kẻ" `#F3F5F4`.
+* **Font:** Be Vietnam Pro (font được thiết kế cho tiếng Việt), số dạng tabular cho các cột thẳng hàng.
+* **Điểm nhấn duy nhất** là câu kết luận chữ lớn ở trang hồ sơ, thay cho thẻ KPI hay đồng hồ đo. Còn lại phân tách bằng đường kẻ, không dùng thẻ hay bóng đổ.
+* Viết theo ngôn ngữ của cố vấn:
+  * "Nguy cơ", "Vì sao", "Nên làm".
+  * Số thập phân dùng dấu phẩy.
+  * Giới tính / nơi ở hiển thị tiếng Việt.
+  * Mã item của luật kết hợp dịch thành câu.
+* **Gợi ý can thiệp** (`app/data.py` → `ACTIONS`):
+  * Áp lực tài chính → học bổng / quỹ hỗ trợ / giãn học phí.
+  * Trượt môn → học lại / phụ đạo / giảm tín chỉ.
+  * Chuyên cần → liên hệ trực tiếp.
+* Waterfall tính lại bằng **đúng phiên bản mô hình** đã chấm (`predictions.model_version`), nên khớp `risk_score` (92% ≈ 91,8% trên biểu đồ).
+* Đã kiểm tra trên màn hình rộng 1400px và điện thoại 420px. Trên điện thoại, "Vì sao → Nên làm" xếp thành một cột và quỹ đạo dạng lưới 2×2.
 
 ## 6. Công cụ / File thực hiện
-Power BI Desktop; `app/streamlit_app.py` (`streamlit`, `plotly`, `shap`).
+* `src/etl/publish.py`: `python -m src.etl.publish`. Gồm `semester_summary()` (hàm thuần, Streamlit dùng chung qua bảng) và `VIEWS`; có 3 kiểm tra sau khi ghi.
+* `app/streamlit_app.py` (4 trang, `st.navigation`), `app/data.py` (đọc PostgreSQL / MongoDB / mô hình, có cache), `app/style.py` (màu, font, mẫu Plotly), `.streamlit/config.toml` (theme).
+* Chạy: `streamlit run app/streamlit_app.py`.
+  * Lần mở trang hồ sơ đầu tiên mất ~15 giây để nạp mô hình từ MLflow và tính SHAP cho 11.115 sinh viên; các lần sau dùng cache.
+  * Dữ liệu `predictions` được cache 5 phút.
+* `dashboards/HUONG_DAN_POWER_BI.md`.
+* `tests/test_publish.py` (3 test) và `tests/test_app.py` (`AppTest` chạy trang mặc định; tự bỏ qua nếu không có PostgreSQL). Tổng 122/122 đạt.
+* **Giới hạn đã biết:** nếu request **đầu tiên sau khi khởi động server** là đường dẫn trang con (ví dụ `/ho-so`), Streamlit 1.41 hiện hộp thoại "Page not found" (lúc đó danh sách trang chưa được đăng ký); trang vẫn chạy đúng sau khi đóng. Mở từ địa chỉ gốc thì không gặp.
 
-## 7. Tiêu chí hoàn thành
-- [ ] Từ dashboard tìm được một sinh viên rủi ro cao trong < 3 thao tác và xem được lý do.
-- [ ] Dashboard cập nhật sau khi B14 chạy lại.
+## 7. Tiêu chí hoàn thành (đã kiểm tra 2026-10-26)
+- [x] Từ dashboard tìm được một sinh viên rủi ro cao trong < 3 thao tác và xem được lý do: trang "Cần liên hệ" mặc định lọc mức Cao, xếp theo nguy cơ, lý do hiện ngay trong bảng (0 thao tác); chọn dòng → "Mở hồ sơ" (2 thao tác) để xem waterfall và việc nên làm.
+- [x] Dashboard cập nhật sau khi B14 chạy lại: app và view đều đọc `run_id` mới nhất. Power BI cần bấm Refresh sau `predict` + `publish`.
+- [ ] `dashboards/ews_dashboard.pbix`: nhóm dựng theo hướng dẫn (cần Power BI Desktop).
 
 ---
 

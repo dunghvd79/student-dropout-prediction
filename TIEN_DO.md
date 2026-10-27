@@ -1,5 +1,5 @@
 # TIẾN ĐỘ DỰ ÁN
-**Cập nhật lần cuối:** 2026-10-26 · **Commit mới nhất:** `Buoc 14: du doan theo lo`  
+**Cập nhật lần cuối:** 2026-10-27 · **Commit mới nhất:** `Buoc 15-16: dashboard, van hanh, giam sat, sao luu`  
 **Quy trình chi tiết:** [`QUY_TRINH_DU_AN/`](./QUY_TRINH_DU_AN/README.md)
 
 > Cập nhật file này mỗi khi xong một bước: đổi trạng thái, ghi commit, thêm quyết định / vấn đề mới.
@@ -25,11 +25,11 @@
 | | B12 Đánh giá & chọn ngưỡng | ✅ Xong |
 | | B13 Giải thích SHAP | ✅ Xong |
 | **E – Triển khai & Vận hành** | B14 Dự đoán theo lô | ✅ Xong |
-| | B15 Dashboard | ⏭️ **Làm tiếp theo** |
-| | B16 Giám sát & vận hành | ⬜ Chưa làm |
-| **F – Kết thúc** | B17 Báo cáo & bảo vệ | ⬜ Chưa làm |
+| | B15 Dashboard | ✅ Xong (file `.pbix` chờ nhóm dựng) |
+| | B16 Giám sát & vận hành | ✅ Xong |
+| **F – Kết thúc** | B17 Báo cáo & bảo vệ | ⏭️ **Làm tiếp theo** |
 
-**Hoàn thành: 15 / 18 bước** (Giai đoạn A, B, C, D xong; Giai đoạn E: 1/3).
+**Hoàn thành: 17 / 18 bước** (Giai đoạn A – E xong; còn B17).
 
 ---
 
@@ -152,16 +152,56 @@
 * 6/6 kiểm tra đạt; 15 – 22 giây (< 2 phút); chạy lại cùng `run_id` 3 lần vẫn 11.115 dòng; `--local` (joblib) cho cùng kết quả với Registry.
 * 6 test mới (`test_predict.py`); tổng 118/118 đạt.
 
+### B15 – Trực quan hóa & Dashboard ✅ (commit `Buoc 15-16`)
+* `python -m src.etl.publish`:
+  * Tạo trong PostgreSQL bảng `semester_summary` (8 học kỳ, tổng hợp từ MongoDB vì Power BI không đọc được), view `v_canh_bao` (lần chấm mới nhất + hồ sơ + cụm) và view `v_rui_ro_theo_nhom` (5 chiều).
+  * 3/3 kiểm tra đạt.
+* **Streamlit** `streamlit run app/streamlit_app.py` (http://localhost:8501), 4 trang:
+  1. **Cần liên hệ:** 7 bộ lọc, bảng kèm 3 lý do, chọn dòng mở hồ sơ, tải CSV.
+  2. **Hồ sơ sinh viên:** câu kết luận + "Vì sao → Nên làm" + waterfall SHAP theo nhóm (trục ghi bằng xác suất) + quỹ đạo so với trung bình cùng kỳ.
+  3. **Toàn trường:** tỷ lệ mức Cao / Trung bình theo 5 chiều + xu hướng.
+  4. **Nhóm và quy luật:** cụm + luật viết thành câu.
+* Thiết kế theo skill frontend-design:
+  * Màu cảnh báo chỉ cho mức rủi ro.
+  * Font Be Vietnam Pro.
+  * Điểm nhấn là câu kết luận chữ lớn thay cho thẻ KPI.
+  * Số thập phân dấu phẩy, nhãn tiếng Việt.
+  * Đã chụp và rà ở 1400px và 420px (`reports/figures/app_*.png`).
+* **Power BI:** máy chưa có Power BI Desktop → viết [`dashboards/HUONG_DAN_POWER_BI.md`](./dashboards/HUONG_DAN_POWER_BI.md) (kết nối, 7 measure DAX, màu, 4 trang, bảng số liệu đối chiếu); nhóm dựng `ews_dashboard.pbix`.
+* README thêm lệnh chạy toàn bộ pipeline. 4 test mới (`test_publish.py`, `test_app.py` dùng `AppTest`); tổng 122/122 đạt.
+* Giới hạn đã biết: request đầu tiên sau khi khởi động server mà vào thẳng trang con thì Streamlit 1.41 hiện hộp thoại "Page not found" (trang vẫn chạy đúng).
+
+### B16 – Giám sát & vận hành ✅ (commit `Buoc 15-16`)
+* `python -m src.ops.run_pipeline`:
+  * Chạy ingest → validate → clean → load → features → predict → publish → monitor, mỗi bước là đúng lệnh `python -m` như khi chạy tay.
+  * Dừng khi một bước lỗi; `--from` để chạy lại; không chạy chồng.
+  * Ghi bảng `pipeline_runs` (từng bước, metrics, alerts) và log ở `logs/pipeline/`.
+  * Hết 60 – 64 giây (ngưỡng 120).
+* `src/ops/monitor.py` (ngưỡng trong `settings.yaml` → `monitoring`):
+  * Lỗi schema 0%; thiếu `Family_Income` 4,5%, `LMS_Logins` 1,1%.
+  * **PSI** (Train so với sinh viên đang học): `Sem_GPA` 0,014, `Financial_Stress` 0,010, `Attendance` 0,011, đều ổn định; PSI lớn nhất trong 35 biến là `Semester` 0,098.
+  * Mức Cao 3,9% so với Test 5,7%.
+  * Hiệu năng trên nhãn mới: chưa có (cần dữ liệu học kỳ sau).
+  * → `reports/monitoring_report.md`.
+* `python -m src.ops.backup`:
+  * Sao lưu 2 dump PostgreSQL (`dropout_ews`, `mlflow`), MongoDB và 3 bucket MinIO: 69 file, 11,8 MB, 3 – 4 giây; kèm manifest SHA-256 + số lượng; giữ 4 bản.
+  * Lệnh `verify` khôi phục vào container **tạm**: 14/14 kiểm tra đạt, RTO 12 giây.
+* **Lập lịch:** `scripts/chay_dinh_ky.ps1` (pipeline + sao lưu, log UTF-8) và `scripts/dang_ky_lich.ps1`. Đã đăng ký `DropoutEWS-HangTuan`, kích hoạt qua Task Scheduler → `LastTaskResult = 0` (`run_20261027T091452`, `trigger = scheduled`), rồi **gỡ tác vụ** theo quyết định của nhóm.
+* Đã thử nhánh lỗi: bước giả không tồn tại → dừng, ghi `FAILED`, mã 1. Dòng thử đã xóa.
+* Huấn luyện lại champion – challenger: ghi thành quy trình trong B16, chưa tự động hóa.
+* 8 test mới (`test_monitor.py`, `test_backup.py`); tổng 130/130 đạt.
+
 ---
 
-## 3. Việc tiếp theo: B15 – Trực quan hóa & Dashboard
+## 3. Việc tiếp theo: B17 – Báo cáo tổng kết & bảo vệ
 
-Chi tiết: [`B15_TRUC_QUAN_HOA_DASHBOARD.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_E_TRIEN_KHAI_VAN_HANH/B15_TRUC_QUAN_HOA_DASHBOARD.md)
+Chi tiết: [`B17_BAO_CAO_BAO_VE.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_F_KET_THUC/B17_BAO_CAO_BAO_VE.md)
 
-- [ ] View / bảng tổng hợp trong PostgreSQL cho Power BI (ví dụ `semester_summary`, view ghép `predictions` + `students` + `student_clusters` theo `run_id` mới nhất).
-- [ ] Power BI (4 trang: tổng quan, phân bổ rủi ro, danh sách cảnh báo đỏ kèm 3 lý do, xu hướng). Cần Power BI Desktop trên máy Windows; file `.pbix` do nhóm tự dựng theo view đã chuẩn bị.
-- [ ] Streamlit: tra cứu `Student_ID` → hồ sơ, quỹ đạo các kỳ (MongoDB), `risk_score`, waterfall SHAP theo nhóm + gợi ý can thiệp theo lý do; trang luật kết hợp và hồ sơ cụm.
-- [ ] Mức Cao chỉ nêu lý do thuộc nhóm can thiệp được (đã bảo đảm ở `top_reasons()`).
+- [ ] Báo cáo cuối kỳ 10 phần (B0 → B16), dùng số liệu trong `reports/` (đánh giá, SHAP, chấm điểm, giám sát) và ảnh `reports/figures/`.
+- [ ] Slide 15 – 20 trang; kịch bản demo 5 phút (run_pipeline → MLflow lọc `tags.leaky = 'false'` → Power BI → Streamlit hồ sơ một sinh viên); video demo dự phòng.
+- [ ] Tổng hợp Q&A từ mục "Câu hỏi bảo vệ" của 18 bước (nổi bật: rò rỉ `Income_Missing`, đặc trưng chiều dọc không tăng độ chính xác, đánh giá Test lần 2, LogReg so với XGBoost).
+- [ ] Đóng gói repo: README chạy lại từ đầu, gắn tag `v1.0`.
+- [ ] Phần nhóm tự làm: dựng `.pbix`, các thành viên dựng lại môi trường trên máy mình (tiêu chí B1).
 
 ---
 
@@ -177,7 +217,8 @@ Chi tiết: [`B15_TRUC_QUAN_HOA_DASHBOARD.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_E_TRI
 
 **Dữ liệu đang có trong hệ thống:**
 * MinIO `raw`: 1 object (lô `20261011T085849Z_7df267`). MinIO `processed`: `academic/batch_id=20261011T085849Z_7df267/clean_semesters.parquet`.
-* PostgreSQL `dropout_ews`: `ingestion_log` 3 dòng (1 `SUCCESS`, 1 `SKIPPED` khi chạy lại, 1 `FAILED` từ file hỏng dùng để thử); `students` 20.000; `financial_profiles` 20.000; `predictions` 11.115 dòng (1 lần chạy, `run_id = 20261026-v2`).
+* PostgreSQL `dropout_ews`: `ingestion_log` 6 dòng (1 `SUCCESS`, 4 `SKIPPED` do chạy lại cùng file, 1 `FAILED` từ file hỏng dùng để thử); `students` 20.000; `financial_profiles` 20.000; `predictions` 11.115 dòng (1 lần chạy, `run_id = 20261026-v2`); `semester_summary` 8 dòng + view `v_canh_bao`, `v_rui_ro_theo_nhom` (B15); `pipeline_runs` 3 dòng (2 chạy tay, 1 theo lịch, đều SUCCESS). `predictions` có thêm lần chấm `20261027-v2` do pipeline B16 chạy (giữ lịch sử theo ngày).
+* Sao lưu: `backups/` (không commit), 3 bản ngày 27/10/2026. Log: `logs/` (không commit).
 * MongoDB `dropout_ews.academic_semesters`: 79.239 document, unique index `(student_id, semester)`.
 * PostgreSQL `student_clusters`: 20.000 dòng (B8).
 * Trên máy (không commit, tạo lại bằng script): `data/processed/clean_semesters.parquet` (B4), `data/features/feature_table.parquet` (B7), `data/splits/test_student_ids.csv` + `split_summary.json` (B9).
@@ -206,6 +247,7 @@ Chi tiết: [`B15_TRUC_QUAN_HOA_DASHBOARD.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_E_TRI
 | 15 | 3 mức rủi ro theo chính sách: Cao = Precision ≥ 0,5 (0,318), Trung bình = Recall ≥ 0,80 (0,072) thay cho mốc cố định 0,3 / 0,6 | Mốc cố định 0,3 / 0,6 chỉ bắt ~34% ca bỏ học | B12, settings.yaml, THIET_KE_PIPELINE |
 | 16 | Lý do cảnh báo đọc theo **13 nhóm SHAP**, không theo từng biến; không nêu nhân khẩu / gặp cố vấn làm lý do | Biến tương quan làm hệ số ngược dấu; nhân khẩu không can thiệp được, cố vấn là nhân quả ngược | B13 |
 | 17 | Đánh giá Test lần 2 (có `--reason`) sau khi sửa rò rỉ | Lỗi phát hiện độc lập trên Train; mô hình và ngưỡng chốt trước, không dùng Test để chọn | B12, B13 |
+| 18 | Pipeline định kỳ **không** gồm huấn luyện lại; lập lịch đã kiểm chứng rồi gỡ | Huấn luyện lại theo học kỳ / khi có cảnh báo, theo champion – challenger; nhóm chưa muốn máy tự chạy hằng tuần | B16 |
 
 ---
 
@@ -215,7 +257,8 @@ Chi tiết: [`B15_TRUC_QUAN_HOA_DASHBOARD.md`](./QUY_TRINH_DU_AN/GIAI_DOAN_E_TRI
 docker compose up -d          # bật lại MinIO, PostgreSQL, MongoDB, MLflow
 .venv\Scripts\activate
 python -m src.ops.check_env       # phải báo "Tất cả đều sẵn sàng"
-python -m pytest              # 118/118 đạt
+python -m pytest              # 130/130 đạt
+python -m src.ops.run_pipeline    # chạy cả pipeline chấm điểm (~1 phút)
 ```
 
 * Muốn giải phóng RAM khi không làm: `docker compose stop` (dữ liệu vẫn giữ trong volume).
@@ -229,4 +272,5 @@ python -m pytest              # 118/118 đạt
 - [ ] Các thành viên khác chưa thử dựng lại môi trường trên máy của mình (tiêu chí cuối của B1).
 - [x] Tiêu chí thành công ở B0: đạt (Recall Test 0,820 tại mốc Trung bình; PR-AUC 0,391 so với mốc 0,10; giải thích từng sinh viên bằng SHAP ở B13).
 - [x] MLflow: **giữ** 19 run của lần chạy có rò rỉ và `dropout_model` v1 làm lịch sử, gắn tag `leaky = true` + ghi chú; run mới và v2 có `leaky = false` (`experiments.py`, `evaluate.py` tự gắn). Khi demo lọc `tags.leaky = 'false'`; khi được hỏi về rò rỉ thì so v1 với v2.
+- [ ] Dựng `dashboards/ews_dashboard.pbix` bằng Power BI Desktop theo `dashboards/HUONG_DAN_POWER_BI.md`, chụp 4 trang cho báo cáo.
 - [ ] Dòng `FAILED` thử nghiệm trong `ingestion_log`: giữ làm bằng chứng hay xóa trước khi demo.

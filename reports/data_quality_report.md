@@ -1,5 +1,5 @@
 # BÁO CÁO CHẤT LƯỢNG DỮ LIỆU
-*Sinh tự động bởi `python -m src.etl.validate` lúc 2026-10-26 19:36. Xem phương pháp tại `QUY_TRINH_DU_AN/GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B03_KIEM_TRA_CHAT_LUONG_DU_LIEU.md`.*
+*Sinh tự động bởi `python -m src.etl.validate` lúc 2026-10-27 09:14. Xem phương pháp tại `QUY_TRINH_DU_AN/GIAI_DOAN_B_KY_THUAT_DU_LIEU_ETL/B03_KIEM_TRA_CHAT_LUONG_DU_LIEU.md`.*
 
 * **Nguồn:** `s3://raw/academic/ingest_date=2026-10-11/batch_id=20261011T085849Z_7df267/academic_survival_longitudinal.csv`
 * **batch_id:** `20261011T085849Z_7df267`

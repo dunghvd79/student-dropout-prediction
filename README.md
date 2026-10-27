@@ -81,6 +81,28 @@ python -m src.ops.check_env
 
 > PostgreSQL và MongoDB dùng cổng 5433 / 27018 để không trùng với bản cài sẵn trên máy (5432 / 27017).
 
+**Chạy toàn bộ pipeline** (mỗi bước có giải thích trong [`QUY_TRINH_DU_AN/`](./QUY_TRINH_DU_AN/README.md)):
+
+```powershell
+python -m src.etl.ingest          # B2  CSV → MinIO (raw)
+python -m src.etl.validate        # B3  kiểm tra chất lượng
+python -m src.etl.clean           # B4  làm sạch → Parquet
+python -m src.etl.load            # B5  PostgreSQL + MongoDB
+python -m src.analysis.features   # B7  đặc trưng theo chiều dọc
+python -m src.analysis.mining     # B8  phân cụm, luật kết hợp
+python -m src.ml.split            # B9  chia tập theo sinh viên
+python -m src.ml.experiments      # B11 so sánh, tinh chỉnh, ablation (MLflow)
+python -m src.ml.evaluate         # B12 đánh giá Test, đăng ký mô hình (chỉ một lần)
+python -m src.ml.explain          # B13 SHAP
+python -m src.ml.predict          # B14 chấm điểm sinh viên đang học
+python -m src.etl.publish         # B15 bảng / view cho Power BI
+streamlit run app/streamlit_app.py   # B15 ứng dụng cho cố vấn: http://localhost:8501
+```
+
+**Vận hành định kỳ (B16):** `python -m src.ops.run_pipeline` chạy cả chuỗi ingest → … → publish → monitor và ghi `pipeline_runs`; `python -m src.ops.backup` sao lưu, `python -m src.ops.backup verify` diễn tập khôi phục; `scripts\dang_ky_lich.ps1` đăng ký chạy hằng tuần bằng Task Scheduler.
+
+Power BI: xem [`dashboards/HUONG_DAN_POWER_BI.md`](./dashboards/HUONG_DAN_POWER_BI.md).
+
 ---
 
 ## 📊 Tập dữ liệu (Dataset)

@@ -1,0 +1,14 @@
+# Giao diện Streamlit (B15): màu trung tính; màu cảnh báo chỉ dùng cho mức rủi ro (app/style.py)
+[theme]
+base = "light"
+primaryColor = "#1E2B2F"
+backgroundColor = "#F3F5F4"
+secondaryBackgroundColor = "#E6ECEA"
+textColor = "#1E2B2F"
+font = "sans serif"
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false

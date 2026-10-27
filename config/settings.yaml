@@ -61,3 +61,18 @@ risk_levels:
   #   Cao       : ngưỡng NHỎ NHẤT đạt Precision >= high_precision  → ít nhất 1/2 cảnh báo là đúng (liên hệ trực tiếp)
   target_recall: 0.80
   high_precision: 0.50
+
+monitoring:
+  # Ngưỡng cảnh báo của B16 (src/ops/monitor.py). Vượt ngưỡng → ghi vào pipeline_runs.alerts và báo cáo.
+  max_pipeline_seconds: 120          # toàn pipeline hằng tuần (không gồm huấn luyện lại)
+  max_schema_error_rate: 0.001       # 0,1% dòng sai kiểu / thiếu ở cột bắt buộc
+  max_missing_rate: 0.10             # Family_Income, LMS_Logins (hiện 4,5% và 1,1%)
+  psi_features: [Sem_GPA, Financial_Stress, Attendance]
+  psi_warn: 0.10                     # 0,1 – 0,2: theo dõi
+  psi_alert: 0.20                    # > 0,2: cân nhắc huấn luyện lại
+  max_metric_drop: 0.05              # Recall / PR-AUC trên nhãn mới giảm > 5 điểm so với lúc triển khai
+  high_share_tolerance: 0.5          # tỷ lệ mức Cao lệch > 50% (tương đối) so với Test
+
+backup:
+  dir: backups                       # không commit (.gitignore)
+  keep: 4                            # giữ 4 bản gần nhất

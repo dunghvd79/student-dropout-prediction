@@ -170,14 +170,16 @@ Tich_Hop_pTich_DlieuLon/
 ├── sql/01_ingestion_log.sql               # B2
 ├── sql/02_core_tables.sql                 # B5
 ├── sql/03_student_clusters.sql            # B8
+├── sql/04_pipeline_runs.sql               # B16
 │
 ├── src/
 │   ├── core/          config.py, db.py, schema.py    # dùng chung
-│   ├── etl/           ingest.py (B2), validate.py (B3), clean.py (B4), load.py (B5)
+│   ├── etl/           ingest.py (B2), validate.py (B3), clean.py (B4), load.py (B5), publish.py (B15)
 │   ├── analysis/      features.py (B7), mining.py (B8)
 │   ├── ml/            split.py (B9), train.py (B10), experiments.py (B11), evaluate.py (B12), explain.py (B13), predict.py (B14)
-│   └── ops/           check_env.py (B1), monitor.py, run_pipeline.py (B16)
+│   └── ops/           check_env.py (B1), run_pipeline.py, monitor.py, backup.py (B16)
 ├── tests/                                 # pytest
+├── scripts/                               # B16: chay_dinh_ky.ps1, dang_ky_lich.ps1 (Task Scheduler)
 │
 ├── notebooks/
 │   ├── 01_data_cleaning_eda.ipynb         # B3, B6
@@ -185,8 +187,8 @@ Tich_Hop_pTich_DlieuLon/
 │   ├── 03_data_mining_patterns.ipynb      # B8
 │   └── 04_machine_learning_models.ipynb   # B9 – B13
 │
-├── app/streamlit_app.py                   # B15
-├── dashboards/ews_dashboard.pbix          # B15
+├── app/                                   # B15: streamlit_app.py (4 trang), data.py, style.py
+├── dashboards/                            # B15: HUONG_DAN_POWER_BI.md, ews_dashboard.pbix (nhóm dựng)
 ├── data/                                  # (không commit) raw/ processed/ features/ splits/
 └── reports/                               # figures/, data_quality_report.md, model_comparison.csv,
                                            # evaluation_report.md, association_rules.csv, final_report

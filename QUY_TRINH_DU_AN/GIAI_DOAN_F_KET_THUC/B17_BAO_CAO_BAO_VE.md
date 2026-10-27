@@ -58,7 +58,7 @@ Output của B0 – B16.
    9. Triển khai, dashboard & vận hành (B14 – B16)
    10. Kết luận, hạn chế, hướng phát triển
 2. **Slide** 15 – 20 trang, theo đúng mạch trên; mỗi slide một thông điệp.
-3. **Kịch bản demo** (5 phút): chạy `run_pipeline.py` → mở MLflow (so sánh runs, model Production) → mở Power BI (tổng quan, danh sách đỏ) → tra cứu 1 sinh viên rủi ro cao trên Streamlit (quỹ đạo + SHAP).
+3. **Kịch bản demo** (5 phút): chạy `python -m src.ops.run_pipeline` → mở MLflow (so sánh runs, model Production) → mở Power BI (tổng quan, danh sách đỏ) → tra cứu 1 sinh viên rủi ro cao trên Streamlit (quỹ đạo + SHAP).
 4. **Quay video demo dự phòng** phòng khi máy trình chiếu gặp sự cố.
 5. **Chuẩn bị Q&A:** tổng hợp mục "Câu hỏi bảo vệ" của tất cả các bước, cộng với bảng câu hỏi trong [`PROJECT_OVERVIEW.md`](../../PROJECT_OVERVIEW.md) mục 6.
 6. **Đóng gói repo:** README hướng dẫn chạy lại từ đầu (`docker compose up -d` → `pip install -r requirements.txt` → `python src/ops/run_pipeline.py`); gắn tag Git `v1.0`.

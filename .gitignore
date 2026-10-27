@@ -25,3 +25,9 @@ mlartifacts/
 
 # Log tạm khi chạy thí nghiệm
 reports/_*.log
+
+# B16: bản sao lưu (chứa dữ liệu thật)
+backups/
+
+# B16: log chạy pipeline
+logs/

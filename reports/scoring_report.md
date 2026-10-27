@@ -1,5 +1,5 @@
 # BÁO CÁO CHẤM ĐIỂM RỦI RO (B14)
-*Sinh tự động bởi `python -m src.ml.predict` lúc 2026-10-26 23:02. `run_id = 20261026-v2`, mô hình `dropout_model` v2, 22 giây.*
+*Sinh tự động bởi `python -m src.ml.predict` lúc 2026-10-27 09:15. `run_id = 20261027-v2`, mô hình `dropout_model` v2, 11 giây.*
 
 * **Sinh viên được chấm:** 11,115 (kỳ mới nhất của sinh viên đang theo học, `Censored = 1`).
 * **Mốc rủi ro** (`config/risk_thresholds.json`, B12): Trung bình ≥ 0.0717, Cao ≥ 0.3175.
@@ -42,8 +42,8 @@
 | Số dòng trong CSDL = số sinh viên được chấm | ✅ | 11,115 / 11,115 |
 | Không có risk_score / risk_level / lý do NULL | ✅ |  |
 | risk_score trong CSDL khớp kết quả tính | ✅ |  |
-| Lịch sử các lần chạy | ✅ | 1 run_id trong bảng predictions |
-| Thời gian chạy < 2 phút | ✅ | 22 giây |
+| Lịch sử các lần chạy | ✅ | 2 run_id trong bảng predictions |
+| Thời gian chạy < 2 phút | ✅ | 11 giây |
 
 ## 5. Ví dụ 5 sinh viên rủi ro cao nhất
 
